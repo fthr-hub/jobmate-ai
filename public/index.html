@@ -157,13 +157,34 @@
     JOBMATE AI · PERSONAL ASSISTANT
   </div>
 
-  <script>
-    const tg = window.Telegram?.WebApp;
+<script>
+  const tg = window.Telegram?.WebApp;
 
-    if (tg) {
-      tg.ready();
-      tg.expand();
+  if (tg) {
+    tg.ready();
+    tg.expand();
+
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/me", {
+          method: "GET",
+          headers: {
+            "X-Telegram-Init-Data": tg.initData
+          }
+        });
+
+        const data = await response.json();
+        console.log("JobMate AI:", data);
+      } catch (error) {
+        console.error("Gagal memuat profil:", error);
+      }
     }
+
+    if (tg.initData) {
+      loadProfile();
+    }
+  }
+</script>
 
     document.getElementById("analyze").addEventListener("click", () => {
       const vacancy = document.getElementById("vacancy").value.trim();
