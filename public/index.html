@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101114">
+  <title>JobMate AI</title>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #101114;
+      color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 24px 18px;
+    }
+
+    .header {
+      margin: 22px 0 30px;
+    }
+
+    .logo {
+      font-size: 13px;
+      color: #9b8cff;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    h1 {
+      font-size: 30px;
+      margin-top: 12px;
+    }
+
+    .subtitle {
+      color: #92939d;
+      margin-top: 9px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .card {
+      background: #1c1d23;
+      border: 1px solid #30313a;
+      border-radius: 17px;
+      padding: 20px;
+      margin-bottom: 17px;
+    }
+
+    .card h2 {
+      font-size: 17px;
+      margin-bottom: 9px;
+    }
+
+    .card p {
+      color: #999aa5;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      background: #111217;
+      color: white;
+      border: 1px solid #383943;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 16px;
+      resize: vertical;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #8c7bff;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      background: #8875ff;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 14px;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+
+    .status {
+      color: #aaa;
+      font-size: 13px;
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    .footer {
+      color: #777883;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 35px;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="logo">JOBMATE AI</div>
+    <h1>Halo, selamat datang.</h1>
+    <p class="subtitle">
+      Asisten pribadi untuk membantu perjalanan karier dan lamaran kerja kamu.
+    </p>
+  </header>
+
+  <section class="card">
+    <h2>Analisis Lowongan</h2>
+    <p>
+      Tempel deskripsi pekerjaan untuk memulai analisis.
+    </p>
+
+    <textarea
+      id="vacancy"
+      placeholder="Tempel deskripsi lowongan kerja di sini..."
+    ></textarea>
+
+    <button id="analyze">Analisis Lowongan</button>
+
+    <div class="status" id="status">
+      JobMate AI siap membantu.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Profil & CV</h2>
+    <p>Kelola informasi diri dan dokumen lamaran kamu.</p>
+  </section>
+
+  <section class="card">
+    <h2>Riwayat Lamaran</h2>
+    <p>Lihat kembali lowongan yang pernah kamu analisis.</p>
+  </section>
+
+  <div class="footer">
+    JOBMATE AI · PERSONAL ASSISTANT
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    document.getElementById("analyze").addEventListener("click", () => {
+      const vacancy = document.getElementById("vacancy").value.trim();
+      const status = document.getElementById("status");
+
+      if (!vacancy) {
+        status.textContent = "Masukkan deskripsi lowongan terlebih dahulu.";
+        return;
+      }
+
+      status.textContent = "Backend AI sedang disiapkan...";
+    });
+  </script>
+</body>
+</html>
