@@ -6,5 +6,12 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jobmate-ai-db",
+      "database_id": "f9e19ac7-7bdf-4b00-a9bf-51fe04ad2e67"
+    }
+  ]
 }
