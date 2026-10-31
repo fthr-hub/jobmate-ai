@@ -88,7 +88,22 @@ export default {
         status: "online"
       });
     }
+if (url.pathname === "/api/db-test") {
+  try {
+    const result = await env.DB.prepare("SELECT 1 AS test").first();
 
+    return Response.json({
+      success: true,
+      database: "connected",
+      result
+    });
+  } catch (error) {
+    return Response.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
+  }
+}
     if (url.pathname.startsWith("/api/")) {
       if (request.method !== "GET") {
         return Response.json(
