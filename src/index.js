@@ -5,7 +5,9 @@ async function verifyTelegramInitData(initData, botToken) {
   const params = new URLSearchParams(initData);
   const receivedHash = params.get("hash");
 
-  if (!receivedHash) return null;
+  if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash)) {
+    return null;
+  }
 
   params.delete("hash");
 
@@ -48,16 +50,28 @@ async function verifyTelegramInitData(initData, botToken) {
     .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
 
-  if (calculatedHex !== receivedHash) return null;
+  let difference = 0;
+
+  for (let i = 0; i < 64; i++) {
+    difference |= calculatedHex.charCodeAt(i) ^ receivedHash.toLowerCase().charCodeAt(i);
+  }
+
+  if (difference !== 0) return null;
 
   const authDate = Number(params.get("auth_date"));
+  const now = Math.floor(Date.now() / 1000);
 
-  if (!authDate || Date.now() / 1000 - authDate > 3600) {
+  if (!Number.isFinite(authDate) || authDate <= 0 ||
+      authDate > now + 30 || now - authDate > 3600) {
     return null;
   }
 
   try {
-    return JSON.parse(params.get("user") || "null");
+    const user = JSON.parse(params.get("user") || "null");
+
+    if (!user || !user.id || user.is_bot) return null;
+
+    return user;
   } catch {
     return null;
   }
@@ -76,6 +90,13 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/")) {
+      if (request.method !== "GET") {
+        return Response.json(
+          { success: false, error: "Method not allowed" },
+          { status: 405 }
+        );
+      }
+
       const initData = request.headers.get("X-Telegram-Init-Data");
 
       const user = await verifyTelegramInitData(
@@ -83,17 +104,28 @@ export default {
         env.TELEGRAM_BOT_TOKEN
       );
 
-      if (!user || String(user.id) !== String(env.ALLOWED_TELEGRAM_ID)) {
+      if (!user) {
         return Response.json(
-          { success: false, error: "Unauthorized" },
+          { success: false, error: "Telegram authentication required" },
           { status: 401 }
         );
       }
 
-      return Response.json({
-        success: true,
-        message: "Telegram authentication verified"
-      });
+      if (url.pathname === "/api/me") {
+        return Response.json({
+          success: true,
+          user: {
+            id: String(user.id),
+            first_name: user.first_name || "",
+            username: user.username || null
+          }
+        });
+      }
+
+      return Response.json(
+        { success: false, error: "Not found" },
+        { status: 404 }
+      );
     }
 
     return env.ASSETS.fetch(request);
