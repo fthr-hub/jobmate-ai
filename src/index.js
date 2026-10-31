@@ -127,16 +127,27 @@ if (url.pathname === "/api/db-test") {
       }
 
       if (url.pathname === "/api/me") {
-        return Response.json({
-          success: true,
-          user: {
-            id: String(user.id),
-            first_name: user.first_name || "",
-            username: user.username || null
-          }
-        });
-      }
+  await env.DB.prepare(`
+    INSERT INTO users (telegram_id, first_name, username)
+    VALUES (?, ?, ?)
+    ON CONFLICT(telegram_id) DO UPDATE SET
+      first_name = excluded.first_name,
+      username = excluded.username
+  `).bind(
+    String(user.id),
+    user.first_name || "",
+    user.username || null
+  ).run();
 
+  return Response.json({
+    success: true,
+    user: {
+      id: String(user.id),
+      first_name: user.first_name || "",
+      username: user.username || null
+    }
+  });
+}
       return Response.json(
         { success: false, error: "Not found" },
         { status: 404 }
