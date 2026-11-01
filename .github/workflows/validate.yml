@@ -1,0 +1,34 @@
+name: Validate JobMate AI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/profile-documents-applications]
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check Worker JavaScript syntax
+        run: node --check src/index.js
+      - name: Check frontend inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          html = Path("public/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script>", html, re.I)
+          if not scripts or not any(s.strip() for s in scripts):
+              raise SystemExit("No inline JavaScript found")
+          Path("/tmp/jobmate-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
+          class CheckHTML(HTMLParser):
+              pass
+          CheckHTML().feed(html)
+          PY
+          node --check /tmp/jobmate-inline.js
