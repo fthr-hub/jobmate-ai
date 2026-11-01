@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101114">
   <title>JobMate AI</title>
-
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
@@ -80,10 +79,6 @@
       outline: none;
     }
 
-    textarea:focus {
-      border-color: #8c7bff;
-    }
-
     button {
       width: 100%;
       padding: 15px;
@@ -96,15 +91,12 @@
       margin-top: 14px;
     }
 
-    button:disabled {
-      opacity: .5;
-    }
-
     .status {
       color: #aaa;
       font-size: 13px;
       margin-top: 14px;
-      text-align: center;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
     }
 
     .footer {
@@ -127,9 +119,7 @@
 
   <section class="card">
     <h2>Analisis Lowongan</h2>
-    <p>
-      Tempel deskripsi pekerjaan untuk memulai analisis.
-    </p>
+    <p>Tempel deskripsi pekerjaan untuk memulai analisis.</p>
 
     <textarea
       id="vacancy"
@@ -137,7 +127,6 @@
     ></textarea>
 
     <button id="analyze">Analisis Lowongan</button>
-
     <div class="status" id="status">
       JobMate AI siap membantu.
     </div>
@@ -153,18 +142,38 @@
     <p>Lihat kembali lowongan yang pernah kamu analisis.</p>
   </section>
 
+  <section class="card">
+    <h2>Status Koneksi</h2>
+    <div class="status" id="connection">
+      Memeriksa koneksi Telegram...
+    </div>
+  </section>
+
   <div class="footer">
     JOBMATE AI · PERSONAL ASSISTANT
   </div>
 
   <script>
     const tg = window.Telegram?.WebApp;
+    const connection = document.getElementById("connection");
 
-    if (tg) {
+    if (!tg) {
+      connection.textContent =
+        "Telegram WebApp tidak terdeteksi. Buka melalui Telegram.";
+    } else {
       tg.ready();
       tg.expand();
 
       async function loadProfile() {
+        if (!tg.initData) {
+          connection.textContent =
+            "Telegram terbuka, tetapi initData kosong.";
+          return;
+        }
+
+        connection.textContent =
+          "Telegram terdeteksi. Menghubungi backend...";
+
         try {
           const response = await fetch("/api/me", {
             method: "GET",
@@ -174,15 +183,27 @@
           });
 
           const data = await response.json();
-          console.log("JobMate AI:", data);
+
+          if (!response.ok) {
+            connection.textContent =
+              "Autentikasi gagal. HTTP " +
+              response.status +
+              ": " +
+              (data.error || "Unknown error");
+            return;
+          }
+
+          connection.textContent =
+            "Berhasil terhubung!\n" +
+            "Nama: " + (data.user.first_name || "-") +
+            "\nTelegram ID: " + data.user.id;
         } catch (error) {
-          console.error("Gagal memuat profil:", error);
+          connection.textContent =
+            "Gagal menghubungi backend: " + error.message;
         }
       }
 
-      if (tg.initData) {
-        loadProfile();
-      }
+      loadProfile();
     }
 
     document.getElementById("analyze").addEventListener("click", () => {
@@ -190,7 +211,8 @@
       const status = document.getElementById("status");
 
       if (!vacancy) {
-        status.textContent = "Masukkan deskripsi lowongan terlebih dahulu.";
+        status.textContent =
+          "Masukkan deskripsi lowongan terlebih dahulu.";
         return;
       }
 
