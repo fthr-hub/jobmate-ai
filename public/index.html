@@ -97,6 +97,7 @@
       margin-top: 14px;
       line-height: 1.6;
       overflow-wrap: anywhere;
+      white-space: pre-line;
     }
 
     .footer {
@@ -157,54 +158,60 @@
     const tg = window.Telegram?.WebApp;
     const connection = document.getElementById("connection");
 
-    if (!tg) {
-      connection.textContent =
-        "Telegram WebApp tidak terdeteksi. Buka melalui Telegram.";
-    } else {
+    async function loadProfile() {
+      if (!tg) {
+        connection.textContent =
+          "Telegram WebApp tidak terdeteksi. Buka melalui Telegram.";
+        return;
+      }
+
       tg.ready();
       tg.expand();
 
-      async function loadProfile() {
-        if (!tg.initData) {
+      const initData = tg.initData;
+
+      connection.textContent =
+        "Telegram terdeteksi.\n" +
+        "initData: " + (initData ? "TERSEDIA" : "KOSONG");
+
+      if (!initData) {
+        connection.textContent +=
+          "\nTelegram tidak memberikan data autentikasi.";
+        return;
+      }
+
+      connection.textContent += "\nMenghubungi backend...";
+
+      try {
+        const response = await fetch("/api/me", {
+          method: "GET",
+          headers: {
+            "X-Telegram-Init-Data": initData
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
           connection.textContent =
-            "Telegram terbuka, tetapi initData kosong.";
+            "Autentikasi gagal.\n" +
+            "HTTP: " + response.status +
+            "\nError: " + (data.error || "Unknown") +
+            "\nReason: " + (data.reason || "Tidak tersedia");
           return;
         }
 
         connection.textContent =
-          "Telegram terdeteksi. Menghubungi backend...";
-
-        try {
-          const response = await fetch("/api/me", {
-            method: "GET",
-            headers: {
-              "X-Telegram-Init-Data": tg.initData
-            }
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            connection.textContent =
-              "Autentikasi gagal. HTTP " +
-              response.status +
-              ": " +
-              (data.error || "Unknown error");
-            return;
-          }
-
-          connection.textContent =
-            "Berhasil terhubung!\n" +
-            "Nama: " + (data.user.first_name || "-") +
-            "\nTelegram ID: " + data.user.id;
-        } catch (error) {
-          connection.textContent =
-            "Gagal menghubungi backend: " + error.message;
-        }
+          "Berhasil terhubung!\n" +
+          "Nama: " + (data.user.first_name || "-") +
+          "\nAutentikasi Telegram berhasil.";
+      } catch (error) {
+        connection.textContent =
+          "Gagal menghubungi backend: " + error.message;
       }
-
-      loadProfile();
     }
+
+    loadProfile();
 
     document.getElementById("analyze").addEventListener("click", () => {
       const vacancy = document.getElementById("vacancy").value.trim();
