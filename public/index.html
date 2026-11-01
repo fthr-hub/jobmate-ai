@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#101114">
   <title>JobMate AI</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     * {
@@ -19,7 +18,7 @@
       background: #101114;
       color: #f5f5f5;
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 24px 18px;
+      padding: 24px 18px 40px;
     }
 
     .header {
@@ -34,14 +33,14 @@
     }
 
     h1 {
-      font-size: 30px;
-      margin-top: 12px;
+      font-size: 29px;
+      margin-top: 13px;
     }
 
     .subtitle {
       color: #92939d;
       margin-top: 9px;
-      line-height: 1.5;
+      line-height: 1.6;
       font-size: 14px;
     }
 
@@ -61,12 +60,12 @@
     .card p {
       color: #999aa5;
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     textarea {
       width: 100%;
-      min-height: 170px;
+      min-height: 180px;
       background: #111217;
       color: white;
       border: 1px solid #383943;
@@ -79,6 +78,10 @@
       outline: none;
     }
 
+    textarea:focus {
+      border-color: #8875ff;
+    }
+
     button {
       width: 100%;
       padding: 15px;
@@ -89,6 +92,12 @@
       font-size: 15px;
       font-weight: 700;
       margin-top: 14px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
 
     .status {
@@ -98,6 +107,38 @@
       line-height: 1.6;
       overflow-wrap: anywhere;
       white-space: pre-line;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      background: #292536;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .feature-info {
+      flex: 1;
+    }
+
+    .feature-info h2 {
+      margin-bottom: 5px;
+    }
+
+    .coming {
+      color: #a99aff;
+      font-size: 11px;
+      margin-top: 5px;
     }
 
     .footer {
@@ -110,121 +151,117 @@
 </head>
 
 <body>
+
   <header class="header">
     <div class="logo">JOBMATE AI</div>
+
     <h1>Halo, selamat datang.</h1>
+
     <p class="subtitle">
-      Asisten pribadi untuk membantu perjalanan karier dan lamaran kerja kamu.
+      Asisten AI untuk membantu kamu menemukan peluang kerja,
+      mempersiapkan CV, dan mengelola perjalanan karier.
     </p>
   </header>
 
   <section class="card">
     <h2>Analisis Lowongan</h2>
-    <p>Tempel deskripsi pekerjaan untuk memulai analisis.</p>
+
+    <p>
+      Tempel deskripsi pekerjaan untuk mengetahui kecocokan
+      pekerjaan dengan pengalaman dan kemampuan kamu.
+    </p>
 
     <textarea
       id="vacancy"
       placeholder="Tempel deskripsi lowongan kerja di sini..."
     ></textarea>
 
-    <button id="analyze">Analisis Lowongan</button>
+    <button id="analyze">
+      Analisis Lowongan
+    </button>
+
     <div class="status" id="status">
       JobMate AI siap membantu.
     </div>
   </section>
 
   <section class="card">
-    <h2>Profil & CV</h2>
-    <p>Kelola informasi diri dan dokumen lamaran kamu.</p>
+    <div class="feature">
+      <div class="feature-icon">👤</div>
+
+      <div class="feature-info">
+        <h2>Profil & CV</h2>
+        <p>Kelola informasi diri dan dokumen lamaran.</p>
+        <div class="coming">Segera tersedia</div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
-    <h2>Riwayat Lamaran</h2>
-    <p>Lihat kembali lowongan yang pernah kamu analisis.</p>
-  </section>
+    <div class="feature">
+      <div class="feature-icon">📋</div>
 
-  <section class="card">
-    <h2>Status Koneksi</h2>
-    <div class="status" id="connection">
-      Memeriksa koneksi Telegram...
+      <div class="feature-info">
+        <h2>Riwayat Lamaran</h2>
+        <p>Pantau dan simpan riwayat lowongan pekerjaan.</p>
+        <div class="coming">Segera tersedia</div>
+      </div>
     </div>
   </section>
 
   <div class="footer">
-    JOBMATE AI · PERSONAL ASSISTANT
+    JOBMATE AI · YOUR PERSONAL CAREER ASSISTANT
   </div>
 
   <script>
-    const tg = window.Telegram?.WebApp;
-    const connection = document.getElementById("connection");
+    const vacancyInput = document.getElementById("vacancy");
+    const analyzeButton = document.getElementById("analyze");
+    const status = document.getElementById("status");
 
-    async function loadProfile() {
-      if (!tg) {
-        connection.textContent =
-          "Telegram WebApp tidak terdeteksi. Buka melalui Telegram.";
+    analyzeButton.addEventListener("click", async () => {
+      const vacancy = vacancyInput.value.trim();
+
+      if (!vacancy) {
+        status.textContent =
+          "Masukkan deskripsi lowongan terlebih dahulu.";
+        vacancyInput.focus();
         return;
       }
 
-      tg.ready();
-      tg.expand();
-
-      const initData = tg.initData;
-
-      connection.textContent =
-        "Telegram terdeteksi.\n" +
-        "initData: " + (initData ? "TERSEDIA" : "KOSONG");
-
-      if (!initData) {
-        connection.textContent +=
-          "\nTelegram tidak memberikan data autentikasi.";
-        return;
-      }
-
-      connection.textContent += "\nMenghubungi backend...";
+      analyzeButton.disabled = true;
+      analyzeButton.textContent = "Memproses...";
+      status.textContent =
+        "Deskripsi lowongan berhasil diterima. Menyiapkan analisis AI...";
 
       try {
-        const response = await fetch("/api/me", {
-          method: "GET",
+        const response = await fetch("/api/analyze", {
+          method: "POST",
           headers: {
-            "X-Telegram-Init-Data": initData
-          }
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            vacancy: vacancy
+          })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          connection.textContent =
-            "Autentikasi gagal.\n" +
-            "HTTP: " + response.status +
-            "\nError: " + (data.error || "Unknown") +
-            "\nReason: " + (data.reason || "Tidak tersedia");
-          return;
+          throw new Error(
+            data.error || "Analisis belum dapat dilakukan."
+          );
         }
 
-        connection.textContent =
-          "Berhasil terhubung!\n" +
-          "Nama: " + (data.user.first_name || "-") +
-          "\nAutentikasi Telegram berhasil.";
+        status.textContent = data.result || "Analisis selesai.";
       } catch (error) {
-        connection.textContent =
-          "Gagal menghubungi backend: " + error.message;
-      }
-    }
-
-    loadProfile();
-
-    document.getElementById("analyze").addEventListener("click", () => {
-      const vacancy = document.getElementById("vacancy").value.trim();
-      const status = document.getElementById("status");
-
-      if (!vacancy) {
         status.textContent =
-          "Masukkan deskripsi lowongan terlebih dahulu.";
-        return;
+          "Analisis belum tersedia: " + error.message;
+      } finally {
+        analyzeButton.disabled = false;
+        analyzeButton.textContent = "Analisis Lowongan";
       }
-
-      status.textContent = "Backend AI sedang disiapkan...";
     });
   </script>
+
 </body>
 </html>
