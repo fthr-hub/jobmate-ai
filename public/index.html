@@ -1,177 +1,79 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#09090b">
-  <title>JobMate AI</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;background:#09090b;color:#f4f4f5;font-family:Arial,sans-serif;padding:24px 16px}
-    main{max-width:680px;margin:auto}
-    header{margin:20px 0 30px}
-    h1{font-size:30px;margin:0 0 8px}
-    .muted{color:#a1a1aa;line-height:1.6}
-    section{background:#18181b;border:1px solid #303036;border-radius:16px;padding:20px;margin-bottom:18px}
-    h2{font-size:19px;margin:0 0 12px}
-    textarea{width:100%;min-height:150px;background:#09090b;color:white;border:1px solid #3f3f46;border-radius:10px;padding:14px;font:inherit;resize:vertical}
-    input[type=file]{width:100%;margin:12px 0;color:#d4d4d8}
-    button{width:100%;padding:14px;border:0;border-radius:10px;background:#fff;color:#09090b;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px}
-    button:disabled{opacity:.5;cursor:wait}
-    .result{white-space:pre-wrap;line-height:1.7;color:#e4e4e7;margin-top:16px;overflow-wrap:anywhere}
-    .quota{font-size:13px;color:#a1a1aa;margin-top:10px}
-    .status{font-size:13px;color:#fbbf24;margin-top:12px}
-    .preview{width:100%;max-height:300px;object-fit:contain;border-radius:10px;display:none;margin-top:10px}
-    footer{text-align:center;color:#71717a;font-size:12px;padding:20px}
-  </style>
-</head>
-<body>
-<main>
-  <header>
-    <h1>JobMate AI</h1>
-    <div class="muted">Asisten AI untuk memahami lowongan dan mempersiapkan lamaran kerja.</div>
-  </header>
-
-  <section>
-    <h2>Analisis Teks Lowongan</h2>
-    <p class="muted">Tempel deskripsi pekerjaan yang ingin kamu analisis.</p>
-    <textarea id="vacancy" placeholder="Tempel deskripsi lowongan kerja di sini..."></textarea>
-    <button id="textButton" onclick="analyzeText()">Analisis Lowongan</button>
-    <div id="textStatus" class="status"></div>
-    <div id="textResult" class="result"></div>
-  </section>
-
-  <section>
-    <h2>Baca Foto Lowongan</h2>
-    <p class="muted">Upload screenshot atau foto lowongan. JPG, PNG, atau WEBP. Maksimal 10 foto per hari.</p>
-    <div class="quota" id="quota">Memuat kuota foto...</div>
-    <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp">
-    <img id="preview" class="preview" alt="Preview foto lowongan">
-    <button id="imageButton" onclick="analyzeImage()">Baca & Analisis Foto</button>
-    <div id="imageStatus" class="status"></div>
-    <div id="imageResult" class="result"></div>
-  </section>
-
-  <section>
-    <h2>Profil & CV</h2>
-    <p class="muted">Fitur pengelolaan profil dan dokumen akan disiapkan pada tahap berikutnya.</p>
-  </section>
-
-  <section>
-    <h2>Riwayat Lamaran</h2>
-    <p class="muted">Fitur penyimpanan dan pemantauan lamaran akan disiapkan pada tahap berikutnya.</p>
-  </section>
-
-  <footer>JobMate AI · Your personal career assistant</footer>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#09090b">
+<title>JobMate AI</title>
+<style>
+:root{color-scheme:dark;--bg:#09090b;--panel:#18181b;--line:#303036;--muted:#a1a1aa;--accent:#fafafa;--green:#86efac;--red:#fca5a5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f4f4f5;font:15px/1.55 system-ui,-apple-system,sans-serif;padding:20px 14px}main{max-width:850px;margin:auto}header{padding:12px 2px 22px}h1{font-size:29px;line-height:1.2;margin:0 0 7px}h2{font-size:19px;margin:0 0 14px}h3{font-size:16px;margin:0 0 5px}.muted,.hint{color:var(--muted)}.muted{margin:0}.tabs{display:flex;gap:8px;overflow:auto;padding:0 0 14px;position:sticky;top:0;background:var(--bg);z-index:2}.tab{white-space:nowrap;width:auto;margin:0;padding:10px 14px;background:#27272a;color:#e4e4e7}.tab.active{background:#fafafa;color:#09090b}section.panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:15px}section.panel.active{display:block}.stack{display:grid;gap:11px}label{display:grid;gap:6px;font-size:13px;color:#d4d4d8}input,textarea,select{width:100%;background:#09090b;color:#fafafa;border:1px solid #3f3f46;border-radius:10px;padding:12px;font:inherit}textarea{min-height:105px;resize:vertical}button{border:0;border-radius:10px;padding:12px 15px;background:#fafafa;color:#09090b;font-weight:700;font-size:14px;cursor:pointer}button.secondary{background:#27272a;color:#f4f4f5;border:1px solid #3f3f46}button.danger{background:#7f1d1d;color:white}button:disabled{opacity:.5;cursor:wait}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{width:auto}.status{font-size:13px;color:#fbbf24;min-height:18px}.success{color:var(--green)}.error{color:var(--red)}.result{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}.card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}.cardtop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.tag{font-size:12px;border-radius:99px;background:#27272a;padding:4px 9px;color:#d4d4d8}.empty{padding:18px;text-align:center;color:var(--muted);border:1px dashed #3f3f46;border-radius:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quota{font-size:13px;color:var(--muted);margin:5px 0 12px}.preview{width:100%;max-height:260px;object-fit:contain;border-radius:10px;display:none;margin-top:10px}footer{text-align:center;color:#71717a;font-size:12px;padding:18px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}body{padding:14px 11px}section.panel{padding:15px}}
+</style></head>
+<body><main>
+<header><h1>JobMate AI</h1><p class="muted">Asisten pribadi untuk memahami lowongan dan mengelola perjalanan lamaran kerja.</p></header>
+<nav class="tabs" aria-label="Navigasi">
+<button class="tab active" data-tab="analisis">Analisis AI</button><button class="tab" data-tab="profil">Profil & CV</button><button class="tab" data-tab="lamaran">Riwayat Lamaran</button>
+</nav>
+<section id="analisis" class="panel active">
+<div class="stack">
+<div><h2>Analisis teks lowongan</h2><p class="muted">Tempel deskripsi pekerjaan untuk melihat ringkasan, kualifikasi, kata kunci ATS, dan tips melamar.</p></div>
+<textarea id="vacancy" placeholder="Tempel deskripsi lowongan kerja di sini..."></textarea><button id="textButton">Analisis Lowongan</button><div id="textStatus" class="status"></div><div id="textResult" class="result"></div>
+<hr style="width:100%;border:0;border-top:1px solid var(--line);margin:12px 0">
+<div><h2>Baca foto lowongan</h2><p class="muted">JPG, PNG, atau WEBP. Maksimal 6 MB.</p></div><div id="quota" class="quota">Memuat kuota foto...</div><input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp"><img id="preview" class="preview" alt="Preview foto"><button id="imageButton">Baca & Analisis Foto</button><div id="imageStatus" class="status"></div><div id="imageResult" class="result"></div>
+</div></section>
+<section id="profil" class="panel">
+<div class="cardtop"><div><h2>Profil profesional</h2><p class="muted">Simpan data dasar, pengalaman, pendidikan, dan keahlian untuk persiapan lamaran.</p></div><span class="tag">Profil</span></div>
+<form id="profileForm" class="stack">
+<label>Nama lengkap<input name="full_name" maxlength="200" autocomplete="name"></label>
+<div class="grid2"><label>Email<input name="email" type="email" maxlength="200" autocomplete="email"></label><label>Nomor telepon<input name="phone" maxlength="60" autocomplete="tel"></label></div>
+<label>Alamat<input name="address" maxlength="500" autocomplete="street-address"></label>
+<label>Keahlian<textarea name="skills" placeholder="Contoh: picking, packing, quality control, Microsoft Excel"></textarea></label>
+<label>Pengalaman kerja<textarea name="experience" placeholder="Jabatan, perusahaan, periode, dan tanggung jawab"></textarea></label>
+<label>Pendidikan<textarea name="education" placeholder="Sekolah/kampus, jurusan, tahun"></textarea></label>
+<div class="actions"><button id="saveProfile" type="submit">Simpan Profil</button><button type="button" class="secondary" id="reloadProfile">Muat Ulang</button></div><div id="profileStatus" class="status"></div>
+</form>
+<div class="card"><h3>Dokumen CV</h3><p class="muted">Unggah CV PDF, DOC, atau DOCX. Batas ukuran saat ini 900 KB per file.</p>
+<form id="uploadForm" class="stack" style="margin-top:12px"><input id="cvFile" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required><button type="submit">Unggah Dokumen</button><div id="documentStatus" class="status"></div></form>
+<div id="documents"><div class="empty">Memuat dokumen...</div></div></div>
+</section>
+<section id="lamaran" class="panel">
+<div class="cardtop"><div><h2>Riwayat lamaran</h2><p class="muted">Catat perusahaan, posisi, status proses, dan catatan tindak lanjut.</p></div><span class="tag" id="applicationCount">0 lamaran</span></div>
+<form id="applicationForm" class="stack" style="margin-top:14px">
+<input type="hidden" name="id">
+<div class="grid2"><label>Nama perusahaan<input name="company_name" required maxlength="200" placeholder="Nama perusahaan"></label><label>Posisi<input name="position" required maxlength="200" placeholder="Posisi yang dilamar"></label></div>
+<label>Status<select name="status"><option value="draft">Draft</option><option value="applied">Sudah melamar</option><option value="interview">Interview</option><option value="accepted">Diterima</option><option value="rejected">Ditolak</option></select></label>
+<label>Tanggal melamar<input name="applied_at" type="date"></label>
+<label>Deskripsi lowongan<textarea name="job_description" placeholder="Opsional: salin deskripsi lowongan"></textarea></label>
+<label>Catatan<textarea name="notes" placeholder="Kontak HR, jadwal interview, follow-up, dan catatan lain"></textarea></label>
+<div class="actions"><button id="saveApplication" type="submit">Simpan Lamaran</button><button id="cancelEdit" type="button" class="secondary" hidden>Batal Edit</button></div><div id="applicationStatus" class="status"></div>
+</form><div id="applications"><div class="empty">Memuat riwayat lamaran...</div></div>
+</section>
+<footer>JobMate AI · Your personal career assistant</footer>
 </main>
-
 <script>
-const $ = id => document.getElementById(id);
-
-async function analyzeText() {
-  const vacancy = $("vacancy").value.trim();
-  if (!vacancy) {
-    $("textStatus").textContent = "Masukkan deskripsi lowongan terlebih dahulu.";
-    return;
-  }
-
-  const button = $("textButton");
-  button.disabled = true;
-  button.textContent = "Sedang menganalisis...";
-  $("textStatus").textContent = "";
-  $("textResult").textContent = "";
-
-  try {
-    const response = await fetch("/api/analyze", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({vacancy})
-    });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Analisis gagal.");
-    $("textResult").textContent = data.result;
-  } catch (error) {
-    $("textStatus").textContent = error.message;
-  } finally {
-    button.disabled = false;
-    button.textContent = "Analisis Lowongan";
-  }
-}
-
-async function loadQuota() {
-  try {
-    const response = await fetch("/api/image-usage");
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Kuota belum tersedia.");
-    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
-    $("imageButton").disabled = data.remaining <= 0;
-  } catch (error) {
-    $("quota").textContent = "Kuota belum dapat dimuat: " + error.message;
-  }
-}
-
-$("imageInput").addEventListener("change", () => {
-  const file = $("imageInput").files[0];
-  $("preview").style.display = "none";
-  if (!file) return;
-  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
-    $("imageStatus").textContent = "Format harus JPG, PNG, atau WEBP.";
-    $("imageInput").value = "";
-    return;
-  }
-  if (file.size > 6 * 1024 * 1024) {
-    $("imageStatus").textContent = "Ukuran foto maksimal 6 MB.";
-    $("imageInput").value = "";
-    return;
-  }
-  $("imageStatus").textContent = "";
-  $("preview").src = URL.createObjectURL(file);
-  $("preview").style.display = "block";
-});
-
-async function analyzeImage() {
-  const file = $("imageInput").files[0];
-  if (!file) {
-    $("imageStatus").textContent = "Pilih foto lowongan terlebih dahulu.";
-    return;
-  }
-
-  const button = $("imageButton");
-  button.disabled = true;
-  button.textContent = "Sedang membaca foto...";
-  $("imageStatus").textContent = "";
-  $("imageResult").textContent = "";
-
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = () => reject(new Error("Foto gagal dibaca."));
-      reader.readAsDataURL(file);
-    });
-
-    const response = await fetch("/api/analyze-image", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({image:base64,mimeType:file.type})
-    });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Gagal membaca foto.");
-
-    $("imageResult").textContent = data.result;
-    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
-  } catch (error) {
-    $("imageStatus").textContent = error.message;
-    await loadQuota();
-  } finally {
-    button.disabled = false;
-    button.textContent = "Baca & Analisis Foto";
-    await loadQuota();
-  }
-}
-
+const $=id=>document.getElementById(id);
+const status=(id,msg,type="")=>{const el=$(id);el.textContent=msg;el.className="status "+type};
+const request=async(path,options={})=>{const r=await fetch(path,options);let d;try{d=await r.json()}catch{throw new Error("Respons server tidak valid.")}if(!r.ok||d.success===false)throw new Error(d.error||"Permintaan gagal.");return d};
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===b.dataset.tab));if(b.dataset.tab==="profil"){loadProfile();loadDocuments()}if(b.dataset.tab==="lamaran")loadApplications()}));
+$("textButton").addEventListener("click",async()=>{const vacancy=$("vacancy").value.trim();if(!vacancy)return status("textStatus","Masukkan deskripsi lowongan terlebih dahulu.");const b=$("textButton");b.disabled=true;b.textContent="Menganalisis...";$("textResult").textContent="";status("textStatus","");try{const d=await request("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vacancy})});$("textResult").textContent=d.result||""}catch(e){status("textStatus",e.message,"error")}finally{b.disabled=false;b.textContent="Analisis Lowongan"}});
+async function loadQuota(){try{const d=await request("/api/image-usage");$("quota").textContent="Kuota foto hari ini: "+d.used+"/"+d.limit+" · Sisa "+d.remaining+" foto";$("imageButton").disabled=d.remaining<=0}catch(e){$("quota").textContent="Kuota belum dapat dimuat: "+e.message}}
+$("imageInput").addEventListener("change",()=>{const f=$("imageInput").files[0];$("preview").style.display="none";if(!f)return;if(!["image/jpeg","image/png","image/webp"].includes(f.type)||f.size>6*1024*1024){status("imageStatus",f.size>6*1024*1024?"Ukuran foto maksimal 6 MB.":"Format harus JPG, PNG, atau WEBP.","error");$("imageInput").value="";return}status("imageStatus","");$("preview").src=URL.createObjectURL(f);$("preview").style.display="block"});
+$("imageButton").addEventListener("click",async()=>{const f=$("imageInput").files[0];if(!f)return status("imageStatus","Pilih foto lowongan terlebih dahulu.");const b=$("imageButton");b.disabled=true;b.textContent="Membaca foto...";$("imageResult").textContent="";try{const base64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(",")[1]);r.onerror=()=>no(Error("Foto gagal dibaca."));r.readAsDataURL(f)});const d=await request("/api/analyze-image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:base64,mimeType:f.type})});$("imageResult").textContent=d.result||""}catch(e){status("imageStatus",e.message,"error")}finally{b.disabled=false;b.textContent="Baca & Analisis Foto";loadQuota()}});
+const profileForm=$("profileForm");
+async function loadProfile(){try{const d=await request("/api/profile");const p=d.profile||{};for(const k of ["full_name","email","phone","address","skills","experience","education"])profileForm.elements[k].value=p[k]||"";status("profileStatus","Profil berhasil dimuat.","success")}catch(e){status("profileStatus",e.message,"error")}}
+profileForm.addEventListener("submit",async e=>{e.preventDefault();const b=$("saveProfile");b.disabled=true;try{const data=Object.fromEntries(new FormData(profileForm).entries());await request("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});status("profileStatus","Profil berhasil disimpan.","success")}catch(e){status("profileStatus",e.message,"error")}finally{b.disabled=false}});
+$("reloadProfile").addEventListener("click",loadProfile);
+async function loadDocuments(){try{const d=await request("/api/documents");const list=d.documents||[];$("documents").innerHTML=list.length?list.map(x=>'<div class="card"><div class="cardtop"><div><strong></strong><div class="hint"></div></div><span class="tag">CV</span></div><div class="actions" style="margin-top:10px"><button class="secondary download" data-id="'+esc(x.id)+'">Unduh</button><button class="danger delete-doc" data-id="'+esc(x.id)+'">Hapus</button></div></div>').join(""):'<div class="empty">Belum ada dokumen CV.</div>';[...$("documents").querySelectorAll(".card")].forEach((el,i)=>{el.querySelector("strong").textContent=list[i].file_name;el.querySelector(".hint").textContent=new Date(list[i].created_at).toLocaleString("id-ID")});$("documents").querySelectorAll(".download").forEach(b=>b.addEventListener("click",()=>downloadDocument(b.dataset.id)));$("documents").querySelectorAll(".delete-doc").forEach(b=>b.addEventListener("click",()=>deleteDocument(b.dataset.id)))}catch(e){$("documents").innerHTML='<div class="empty">'+esc(e.message)+'</div>'}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("uploadForm").addEventListener("submit",async e=>{e.preventDefault();const f=$("cvFile").files[0];if(!f)return;const b=e.submitter;b.disabled=true;status("documentStatus","Mengunggah...");try{const form=new FormData();form.append("file",f);await request("/api/documents",{method:"POST",body:form});$("cvFile").value="";status("documentStatus","Dokumen berhasil diunggah.","success");loadDocuments()}catch(e){status("documentStatus",e.message,"error")}finally{b.disabled=false}});
+async function downloadDocument(id){try{const r=await fetch("/api/documents/"+encodeURIComponent(id));if(!r.ok){const d=await r.json();throw Error(d.error||"Gagal mengunduh.")}const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=r.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1]||"CV";a.click();URL.revokeObjectURL(url)}catch(e){status("documentStatus",e.message,"error")}}
+async function deleteDocument(id){if(!confirm("Hapus dokumen ini?"))return;try{await request("/api/documents/"+encodeURIComponent(id),{method:"DELETE"});status("documentStatus","Dokumen dihapus.","success");loadDocuments()}catch(e){status("documentStatus",e.message,"error")}}
+const appForm=$("applicationForm");
+function resetAppForm(){appForm.reset();appForm.elements.id.value="";$("cancelEdit").hidden=true;$("saveApplication").textContent="Simpan Lamaran"}
+$("cancelEdit").addEventListener("click",resetAppForm);
+appForm.addEventListener("submit",async e=>{e.preventDefault();const b=$("saveApplication");b.disabled=true;const data=Object.fromEntries(new FormData(appForm).entries()),id=data.id;delete data.id;try{await request(id?"/api/applications/"+encodeURIComponent(id):"/api/applications",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});status("applicationStatus",id?"Perubahan lamaran disimpan.":"Lamaran berhasil ditambahkan.","success");resetAppForm();loadApplications()}catch(e){status("applicationStatus",e.message,"error")}finally{b.disabled=false}});
+const labels={draft:"Draft",applied:"Sudah melamar",interview:"Interview",accepted:"Diterima",rejected:"Ditolak"};
+async function loadApplications(){try{const d=await request("/api/applications"),list=d.applications||[];$("applicationCount").textContent=list.length+" lamaran";$("applications").innerHTML=list.length?list.map(x=>'<article class="card"><div class="cardtop"><div><h3>'+esc(x.position||"Posisi belum diisi")+'</h3><div class="muted">'+esc(x.company_name||"Perusahaan belum diisi")+'</div></div><span class="tag">'+esc(labels[x.status]||x.status)+'</span></div><p class="hint">'+(x.applied_at?"Tanggal: "+esc(x.applied_at):"Belum ada tanggal melamar")+'</p>'+(x.notes?'<p class="result">'+esc(x.notes)+'</p>':"")+'<div class="actions"><button class="secondary edit-app" data-id="'+esc(x.id)+'">Edit</button><button class="danger delete-app" data-id="'+esc(x.id)+'">Hapus</button></div></article>').join(""):'<div class="empty">Belum ada riwayat lamaran. Tambahkan lamaran pertama lu lewat form di atas.</div>';$("applications").querySelectorAll(".edit-app").forEach(b=>b.addEventListener("click",()=>editApplication(list.find(x=>x.id===b.dataset.id)));$("applications").querySelectorAll(".delete-app").forEach(b=>b.addEventListener("click",()=>deleteApplication(b.dataset.id)))}catch(e){$("applications").innerHTML='<div class="empty">'+esc(e.message)+'</div>'}}
+function editApplication(x){if(!x)return;for(const k of ["company_name","position","status","applied_at","job_description","notes"])appForm.elements[k].value=x[k]||"";appForm.elements.id.value=x.id;$("saveApplication").textContent="Simpan Perubahan";$("cancelEdit").hidden=false;appForm.scrollIntoView({behavior:"smooth",block:"start"})}
+async function deleteApplication(id){if(!confirm("Hapus riwayat lamaran ini?"))return;try{await request("/api/applications/"+encodeURIComponent(id),{method:"DELETE"});status("applicationStatus","Lamaran dihapus.","success");loadApplications()}catch(e){status("applicationStatus",e.message,"error")}}
 loadQuota();
-</script>
-</body>
-</html>
+</script></body></html>
