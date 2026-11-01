@@ -3,265 +3,175 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101114">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090b">
   <title>JobMate AI</title>
-
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background: #101114;
-      color: #f5f5f5;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 24px 18px 40px;
-    }
-
-    .header {
-      margin: 22px 0 30px;
-    }
-
-    .logo {
-      font-size: 13px;
-      color: #9b8cff;
-      font-weight: 700;
-      letter-spacing: 2px;
-    }
-
-    h1 {
-      font-size: 29px;
-      margin-top: 13px;
-    }
-
-    .subtitle {
-      color: #92939d;
-      margin-top: 9px;
-      line-height: 1.6;
-      font-size: 14px;
-    }
-
-    .card {
-      background: #1c1d23;
-      border: 1px solid #30313a;
-      border-radius: 17px;
-      padding: 20px;
-      margin-bottom: 17px;
-    }
-
-    .card h2 {
-      font-size: 17px;
-      margin-bottom: 9px;
-    }
-
-    .card p {
-      color: #999aa5;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 180px;
-      background: #111217;
-      color: white;
-      border: 1px solid #383943;
-      border-radius: 12px;
-      padding: 14px;
-      margin-top: 16px;
-      resize: vertical;
-      font: inherit;
-      font-size: 14px;
-      outline: none;
-    }
-
-    textarea:focus {
-      border-color: #8875ff;
-    }
-
-    button {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 12px;
-      background: #8875ff;
-      color: white;
-      font-size: 15px;
-      font-weight: 700;
-      margin-top: 14px;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
-
-    .status {
-      color: #aaa;
-      font-size: 13px;
-      margin-top: 14px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-      white-space: pre-line;
-    }
-
-    .feature {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
-
-    .feature-icon {
-      width: 42px;
-      height: 42px;
-      flex-shrink: 0;
-      border-radius: 12px;
-      background: #292536;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-
-    .feature-info {
-      flex: 1;
-    }
-
-    .feature-info h2 {
-      margin-bottom: 5px;
-    }
-
-    .coming {
-      color: #a99aff;
-      font-size: 11px;
-      margin-top: 5px;
-    }
-
-    .footer {
-      color: #777883;
-      font-size: 11px;
-      text-align: center;
-      margin-top: 35px;
-    }
+    *{box-sizing:border-box}
+    body{margin:0;background:#09090b;color:#f4f4f5;font-family:Arial,sans-serif;padding:24px 16px}
+    main{max-width:680px;margin:auto}
+    header{margin:20px 0 30px}
+    h1{font-size:30px;margin:0 0 8px}
+    .muted{color:#a1a1aa;line-height:1.6}
+    section{background:#18181b;border:1px solid #303036;border-radius:16px;padding:20px;margin-bottom:18px}
+    h2{font-size:19px;margin:0 0 12px}
+    textarea{width:100%;min-height:150px;background:#09090b;color:white;border:1px solid #3f3f46;border-radius:10px;padding:14px;font:inherit;resize:vertical}
+    input[type=file]{width:100%;margin:12px 0;color:#d4d4d8}
+    button{width:100%;padding:14px;border:0;border-radius:10px;background:#fff;color:#09090b;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px}
+    button:disabled{opacity:.5;cursor:wait}
+    .result{white-space:pre-wrap;line-height:1.7;color:#e4e4e7;margin-top:16px;overflow-wrap:anywhere}
+    .quota{font-size:13px;color:#a1a1aa;margin-top:10px}
+    .status{font-size:13px;color:#fbbf24;margin-top:12px}
+    .preview{width:100%;max-height:300px;object-fit:contain;border-radius:10px;display:none;margin-top:10px}
+    footer{text-align:center;color:#71717a;font-size:12px;padding:20px}
   </style>
 </head>
-
 <body>
-
-  <header class="header">
-    <div class="logo">JOBMATE AI</div>
-
-    <h1>Halo, selamat datang.</h1>
-
-    <p class="subtitle">
-      Asisten AI untuk membantu kamu menemukan peluang kerja,
-      mempersiapkan CV, dan mengelola perjalanan karier.
-    </p>
+<main>
+  <header>
+    <h1>JobMate AI</h1>
+    <div class="muted">Asisten AI untuk memahami lowongan dan mempersiapkan lamaran kerja.</div>
   </header>
 
-  <section class="card">
-    <h2>Analisis Lowongan</h2>
-
-    <p>
-      Tempel deskripsi pekerjaan untuk mengetahui kecocokan
-      pekerjaan dengan pengalaman dan kemampuan kamu.
-    </p>
-
-    <textarea
-      id="vacancy"
-      placeholder="Tempel deskripsi lowongan kerja di sini..."
-    ></textarea>
-
-    <button id="analyze">
-      Analisis Lowongan
-    </button>
-
-    <div class="status" id="status">
-      JobMate AI siap membantu.
-    </div>
+  <section>
+    <h2>Analisis Teks Lowongan</h2>
+    <p class="muted">Tempel deskripsi pekerjaan yang ingin kamu analisis.</p>
+    <textarea id="vacancy" placeholder="Tempel deskripsi lowongan kerja di sini..."></textarea>
+    <button id="textButton" onclick="analyzeText()">Analisis Lowongan</button>
+    <div id="textStatus" class="status"></div>
+    <div id="textResult" class="result"></div>
   </section>
 
-  <section class="card">
-    <div class="feature">
-      <div class="feature-icon">👤</div>
-
-      <div class="feature-info">
-        <h2>Profil & CV</h2>
-        <p>Kelola informasi diri dan dokumen lamaran.</p>
-        <div class="coming">Segera tersedia</div>
-      </div>
-    </div>
+  <section>
+    <h2>Baca Foto Lowongan</h2>
+    <p class="muted">Upload screenshot atau foto lowongan. JPG, PNG, atau WEBP. Maksimal 10 foto per hari.</p>
+    <div class="quota" id="quota">Memuat kuota foto...</div>
+    <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp">
+    <img id="preview" class="preview" alt="Preview foto lowongan">
+    <button id="imageButton" onclick="analyzeImage()">Baca & Analisis Foto</button>
+    <div id="imageStatus" class="status"></div>
+    <div id="imageResult" class="result"></div>
   </section>
 
-  <section class="card">
-    <div class="feature">
-      <div class="feature-icon">📋</div>
-
-      <div class="feature-info">
-        <h2>Riwayat Lamaran</h2>
-        <p>Pantau dan simpan riwayat lowongan pekerjaan.</p>
-        <div class="coming">Segera tersedia</div>
-      </div>
-    </div>
+  <section>
+    <h2>Profil & CV</h2>
+    <p class="muted">Fitur pengelolaan profil dan dokumen akan disiapkan pada tahap berikutnya.</p>
   </section>
 
-  <div class="footer">
-    JOBMATE AI · YOUR PERSONAL CAREER ASSISTANT
-  </div>
+  <section>
+    <h2>Riwayat Lamaran</h2>
+    <p class="muted">Fitur penyimpanan dan pemantauan lamaran akan disiapkan pada tahap berikutnya.</p>
+  </section>
 
-  <script>
-    const vacancyInput = document.getElementById("vacancy");
-    const analyzeButton = document.getElementById("analyze");
-    const status = document.getElementById("status");
+  <footer>JobMate AI · Your personal career assistant</footer>
+</main>
 
-    analyzeButton.addEventListener("click", async () => {
-      const vacancy = vacancyInput.value.trim();
+<script>
+const $ = id => document.getElementById(id);
 
-      if (!vacancy) {
-        status.textContent =
-          "Masukkan deskripsi lowongan terlebih dahulu.";
-        vacancyInput.focus();
-        return;
-      }
+async function analyzeText() {
+  const vacancy = $("vacancy").value.trim();
+  if (!vacancy) {
+    $("textStatus").textContent = "Masukkan deskripsi lowongan terlebih dahulu.";
+    return;
+  }
 
-      analyzeButton.disabled = true;
-      analyzeButton.textContent = "Memproses...";
-      status.textContent =
-        "Deskripsi lowongan berhasil diterima. Menyiapkan analisis AI...";
+  const button = $("textButton");
+  button.disabled = true;
+  button.textContent = "Sedang menganalisis...";
+  $("textStatus").textContent = "";
+  $("textResult").textContent = "";
 
-      try {
-        const response = await fetch("/api/analyze", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            vacancy: vacancy
-          })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || "Analisis belum dapat dilakukan."
-          );
-        }
-
-        status.textContent = data.result || "Analisis selesai.";
-      } catch (error) {
-        status.textContent =
-          "Analisis belum tersedia: " + error.message;
-      } finally {
-        analyzeButton.disabled = false;
-        analyzeButton.textContent = "Analisis Lowongan";
-      }
+  try {
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({vacancy})
     });
-  </script>
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || "Analisis gagal.");
+    $("textResult").textContent = data.result;
+  } catch (error) {
+    $("textStatus").textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Analisis Lowongan";
+  }
+}
 
+async function loadQuota() {
+  try {
+    const response = await fetch("/api/image-usage");
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || "Kuota belum tersedia.");
+    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
+    $("imageButton").disabled = data.remaining <= 0;
+  } catch (error) {
+    $("quota").textContent = "Kuota belum dapat dimuat: " + error.message;
+  }
+}
+
+$("imageInput").addEventListener("change", () => {
+  const file = $("imageInput").files[0];
+  $("preview").style.display = "none";
+  if (!file) return;
+  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+    $("imageStatus").textContent = "Format harus JPG, PNG, atau WEBP.";
+    $("imageInput").value = "";
+    return;
+  }
+  if (file.size > 6 * 1024 * 1024) {
+    $("imageStatus").textContent = "Ukuran foto maksimal 6 MB.";
+    $("imageInput").value = "";
+    return;
+  }
+  $("imageStatus").textContent = "";
+  $("preview").src = URL.createObjectURL(file);
+  $("preview").style.display = "block";
+});
+
+async function analyzeImage() {
+  const file = $("imageInput").files[0];
+  if (!file) {
+    $("imageStatus").textContent = "Pilih foto lowongan terlebih dahulu.";
+    return;
+  }
+
+  const button = $("imageButton");
+  button.disabled = true;
+  button.textContent = "Sedang membaca foto...";
+  $("imageStatus").textContent = "";
+  $("imageResult").textContent = "";
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = () => reject(new Error("Foto gagal dibaca."));
+      reader.readAsDataURL(file);
+    });
+
+    const response = await fetch("/api/analyze-image", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({image:base64,mimeType:file.type})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || "Gagal membaca foto.");
+
+    $("imageResult").textContent = data.result;
+    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
+  } catch (error) {
+    $("imageStatus").textContent = error.message;
+    await loadQuota();
+  } finally {
+    button.disabled = false;
+    button.textContent = "Baca & Analisis Foto";
+    await loadQuota();
+  }
+}
+
+loadQuota();
+</script>
 </body>
 </html>
