@@ -135,7 +135,20 @@ export default {
         await env.DB.prepare(
           "INSERT INTO document_contents(document_id,content_base64,content_type) VALUES(?,?,?)"
         ).bind(id, btoa(binary), type).run();
-        return json({ success: true, document: { id, file_name: name, file_type: type } }, 201);
+        let extracted = false;
+        let extractionMessage = "CV tersimpan. Ekstraksi otomatis membutuhkan AI aktif dan format PDF.";
+        if (type === "application/pdf" && env.GEMINI_API_KEY) {
+          try {
+            const prompt = "Ekstrak data CV dari PDF. Balas JSON valid saja dengan properti full_name,email,phone,address,skills,experience,education. skills, experience, education berupa teks ringkas bahasa Indonesia. Jangan menebak; gunakan string kosong jika tidak ditemukan. Untuk experience cantumkan jabatan, perusahaan, periode, dan tugas yang tertulis.";
+            const ai = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent", {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:"application/pdf",data:btoa(binary)}}]}],generationConfig:{temperature:0.1,maxOutputTokens:1800,responseMimeType:"application/json"}})});
+            const parsed=await ai.json(), raw=parsed.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("");
+            if(ai.ok&&raw){const cv=JSON.parse(raw),keys=["full_name","email","phone","address","skills","experience","education"],values=keys.map(k=>String(cv[k]||"").slice(0,12000));
+              await env.DB.prepare("INSERT INTO profiles(telegram_id,full_name,email,phone,address,skills,experience,education,updated_at) VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(telegram_id) DO UPDATE SET full_name=CASE WHEN profiles.full_name='' THEN excluded.full_name ELSE profiles.full_name END,email=CASE WHEN profiles.email='' THEN excluded.email ELSE profiles.email END,phone=CASE WHEN profiles.phone='' THEN excluded.phone ELSE profiles.phone END,address=CASE WHEN profiles.address='' THEN excluded.address ELSE profiles.address END,skills=CASE WHEN profiles.skills='' THEN excluded.skills ELSE profiles.skills END,experience=CASE WHEN profiles.experience='' THEN excluded.experience ELSE profiles.experience END,education=CASE WHEN profiles.education='' THEN excluded.education ELSE profiles.education END,updated_at=CURRENT_TIMESTAMP").bind(uid,...values).run();
+              extracted=true;extractionMessage="CV tersimpan dan informasi karier berhasil diekstrak. Periksa hasilnya di Profil.";
+            } else extractionMessage="CV tersimpan, tetapi AI belum berhasil membaca isinya.";
+          } catch(e){extractionMessage="CV tersimpan, tetapi ekstraksi otomatis gagal. Coba lagi nanti.";}
+        }
+        return json({success:true,extracted,message:extractionMessage,document:{id,file_name:name,file_type:type}},201);
       }
       return json({ success: false, error: "Method not allowed." }, 405);
     }
@@ -175,6 +188,25 @@ export default {
       const row = await env.DB.prepare("SELECT image_count FROM image_usage WHERE ip_hash=? AND usage_date=?").bind(hash, day).first();
       const used = row?.image_count || 0;
       return json({ success: true, used, limit: 10, remaining: Math.max(0, 10 - used), resets: "00:00 UTC" });
+    }
+
+    if (url.pathname === "/api/chat") {
+      if (request.method !== "POST") return json({ success: false, error: "Method not allowed." }, 405);
+      if (!env.GEMINI_API_KEY) return json({ success: false, error: "AI belum aktif di staging. Hubungkan GEMINI_API_KEY terlebih dahulu." }, 503);
+      try {
+        const body = await request.json();
+        const messages = Array.isArray(body.messages) ? body.messages.slice(-12) : [];
+        const clean = messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: String(m.content || "").slice(0, 6000) }] })).filter(m => m.parts[0].text.trim());
+        if (!clean.length || clean[clean.length - 1].role !== "user") return json({ success: false, error: "Tulis pertanyaan terlebih dahulu." }, 400);
+        await ensureUser();
+        const profile = await env.DB.prepare("SELECT full_name,skills,experience,education FROM profiles WHERE telegram_id=?").bind(uid).first();
+        const system = "Kamu adalah JobMate AI, career coach pribadi yang ramah, kritis, praktis, dan jujur. Jawab dalam bahasa Indonesia natural. Bantu CV, ATS, lowongan, interview, dan strategi karier. Jangan mengarang fakta. KONTEKS PROFIL: " + JSON.stringify(profile || {});
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent", { method:"POST", headers:{"Content-Type":"application/json","x-goog-api-key":env.GEMINI_API_KEY}, body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:clean,generationConfig:{temperature:0.55,maxOutputTokens:1800}}) });
+        const result = await response.json();
+        if (!response.ok) return json({success:false,error:result.error?.message||"AI gagal menjawab."},502);
+        const answer=result.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim();
+        return answer?json({success:true,answer}):json({success:false,error:"AI tidak memberikan jawaban."},502);
+      } catch(e) { return json({success:false,error:"Terjadi kesalahan saat menghubungi AI."},500); }
     }
 
     if (url.pathname === "/api/analyze" || url.pathname === "/api/analyze-image") {
