@@ -145,7 +145,7 @@ export default {
       await ensureUser();
       const id = match[1];
       if (request.method === "DELETE") {
-        await env.DB.prepare("DELETE FROM document_contents WHERE document_id = ?").bind(id).run();
+        await env.DB.prepare("DELETE FROM document_contents WHERE document_id = ? AND document_id IN (SELECT id FROM documents WHERE id = ? AND telegram_id = ?)").bind(id, id, uid).run();
         const result = await env.DB.prepare("DELETE FROM documents WHERE id = ? AND telegram_id = ?").bind(id, uid).run();
         return result.meta?.changes ? json({ success: true }) : json({ success: false, error: "Dokumen tidak ditemukan." }, 404);
       }
