@@ -23,10 +23,10 @@ jobs:
           from pathlib import Path
           import re
           html = Path("public/index.html").read_text(encoding="utf-8")
-          scripts = re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script>", html, re.I)
+          scripts = re.findall(r"<script\b[^>]*>([\s\S]*?)</script>", html, re.I)
           if not scripts or not any(s.strip() for s in scripts):
               raise SystemExit("No inline JavaScript found")
-          Path("/tmp/jobmate-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/jobmate-inline.js").write_text("\n".join(scripts), encoding="utf-8")
           class CheckHTML(HTMLParser):
               pass
           CheckHTML().feed(html)
