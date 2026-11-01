@@ -89,6 +89,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/api/secret-check") {
+      return Response.json({
+        success: true,
+        tokenConfigured: Boolean(env.TELEGRAM_BOT_TOKEN)
+      });
+    }
+
     if (url.pathname === "/api/health") {
       return Response.json({
         success: true,
