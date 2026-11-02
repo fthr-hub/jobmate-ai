@@ -624,3 +624,69 @@ test("Gmail OAuth callback fails closed for an unknown state", async () => {
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Sesi kedaluwarsa/);
 });
+
+
+test("Gmail inbox sync requires a previously connected owner account", async () => {
+  const env = mockEnv();
+  env.DB = {
+    prepare() {
+      return { bind() { return {
+        first: async () => null,
+        run: async () => ({ success: true, meta: { changes: 0 } }),
+        all: async () => ({ results: [] })
+      }; } };
+    }
+  };
+  const response = await worker.fetch(new Request("https://jobmate.test/api/gmail/messages", {
+    method: "GET",
+    headers: { Authorization: "tma " + await signedInitData() }
+  }), env);
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).error, /Hubungkan Gmail/i);
+});
+
+test("Gmail callback encrypts tokens before storing the connection", async () => {
+  const env = mockEnv();
+  env.GOOGLE_CLIENT_ID = "google-client-id";
+  env.GOOGLE_CLIENT_SECRET = "google-client-secret";
+  env.GMAIL_TOKEN_ENCRYPTION_KEY = "a-long-random-test-encryption-key";
+  const writes = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        first: async () => {
+          if (sql.includes("gmail_oauth_states")) return { telegram_id: OWNER_ID, code_verifier: "pkce-verifier", expires_at: Date.now() + 60000 };
+          if (sql.includes("gmail_connections")) return null;
+          return null;
+        },
+        run: async () => { writes.push({ sql, values }); return { success: true, meta: { changes: 1 } }; },
+        all: async () => ({ results: [] })
+      }; } };
+    }
+  };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    if (String(url).includes("oauth2.googleapis.com/token")) return new Response(JSON.stringify({
+      access_token: "plain-access-token",
+      refresh_token: "plain-refresh-token",
+      expires_in: 3600,
+      scope: "https://www.googleapis.com/auth/gmail.readonly"
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+    if (String(url).includes("userinfo")) return new Response(JSON.stringify({ email: "owner@example.com" }), {
+      status: 200, headers: { "Content-Type": "application/json" }
+    });
+    throw new Error("Unexpected fetch");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://jobmate.test/oauth/gmail/callback?code=sample-code&state=sample-state"), env);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /Gmail berhasil terhubung/);
+    const insert = writes.find(x => x.sql.includes("INSERT INTO gmail_connections"));
+    assert.ok(insert);
+    assert.equal(insert.values[1], "owner@example.com");
+    assert.equal(String(insert.values[2]).includes("plain-refresh-token"), false);
+    assert.equal(writes.some(x => x.sql.includes("DELETE FROM gmail_oauth_states")), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
