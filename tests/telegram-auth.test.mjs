@@ -358,3 +358,13 @@ test("scopes document downloads to the authenticated owner", async () => {
   assert.match(statement.sql, /d\.telegram_id=\?/);
   assert.deepEqual(statement.values, ["not-owned", OWNER_ID]);
 });
+
+
+test("refunds reserved AI quota after upstream Gemini failures", () => {
+  assert.match(source, /const releaseAiQuota=async\(kind\)=>/);
+  assert.match(source, /UPDATE ai_usage SET \$\{column\}=MAX\(\$\{column\}-1,0\) WHERE telegram_id=\? AND usage_date=\?/);
+  assert.match(source, /releaseAiQuota\("chat"\)/);
+  assert.match(source, /releaseAiQuota\(reservedQuotaKind\)/);
+  assert.match(source, /reservedQuotaKind="text"/);
+  assert.match(source, /reservedQuotaKind="image"/);
+});
