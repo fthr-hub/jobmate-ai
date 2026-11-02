@@ -598,7 +598,7 @@ test("starts Gmail OAuth with owner-bound state and PKCE", async () => {
   assert.ok(authUrl.searchParams.get("code_challenge"));
   assert.equal(writes.length, 1);
   assert.match(writes[0].sql, /INSERT INTO gmail_oauth_states/);
-  assert.equal(writes[0].values[1], "123456789");
+  assert.equal(writes[0].values[1], OWNER_ID);
 });
 
 test("does not start Gmail OAuth when Google secrets are missing", async () => {
