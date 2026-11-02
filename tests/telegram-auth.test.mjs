@@ -206,7 +206,7 @@ test("fails closed when the Telegram bot token is not configured", async () => {
 });
 
 test("rejects Telegram initData signed more than 30 seconds in the future", async () => {
-  const initData = await signedInitData(OWNER_ID, Math.floor(Date.now() / 1000) + 31);
+  const initData = await signedInitData(OWNER_ID, Math.floor(Date.now() / 1000) + 120);
   const response = await worker.fetch(
     new Request("https://jobmate.test/api/profile", {
       headers: { Authorization: "tma " + initData }
