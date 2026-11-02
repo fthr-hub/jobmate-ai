@@ -167,3 +167,18 @@ test("keeps the Worker-embedded dashboard identical to the public dashboard", as
 test("uses deterministic code-point ordering for Telegram signature fields", () => {
   assert.match(source, /sort\(\(\[a\],\[b\]\)=>a<b\?-1:a>b\?1:0\)/);
 });
+
+
+test("returns the verified Telegram identity from the authenticated session", async () => {
+  const initData = await signedInitData();
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/me", {
+      headers: { Authorization: "tma " + initData }
+    }),
+    mockEnv()
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.user.first_name, "Test User");
+  assert.equal(body.user.username, null);
+});
