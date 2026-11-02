@@ -9,5 +9,8 @@
       "database_name": "jobmate-ai-staging",
       "database_id": "02883574-f290-4323-bcdb-63201f93dfa0"
     }
-  ]
+  ],
+  "placement": {
+    "region": "gcp:us-east4"
+  }
 }
