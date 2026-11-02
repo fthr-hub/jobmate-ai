@@ -245,3 +245,37 @@ test("includes the additive chat quota migration", async () => {
   );
   assert.match(migration, /ALTER TABLE ai_usage ADD COLUMN chat_count INTEGER NOT NULL DEFAULT 0/);
 });
+
+
+test("stores CV metadata and file content in one atomic D1 batch", async () => {
+  const env = mockEnv();
+  const batches = [];
+  env.DB = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return { run: async () => ({ success: true, meta: { changes: 1 } }), sql, values };
+        }
+      };
+    },
+    batch: async statements => {
+      batches.push(statements);
+      return [];
+    }
+  };
+  const form = new FormData();
+  form.append("file", new File(["sample CV"], "resume.pdf", { type: "application/pdf" }));
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/documents", {
+      method: "POST",
+      headers: { Authorization: "tma " + await signedInitData() },
+      body: form
+    }),
+    env
+  );
+  assert.equal(response.status, 201);
+  assert.equal(batches.length, 1);
+  assert.equal(batches[0].length, 2);
+  assert.match(batches[0][0].sql, /INSERT INTO documents/);
+  assert.match(batches[0][1].sql, /INSERT INTO document_contents/);
+});
