@@ -372,6 +372,7 @@ test("refunds reserved AI quota after upstream Gemini failures", () => {
 
 test("restores chat quota when Gemini returns an upstream error", async () => {
   const env = mockEnv();
+  env.GEMINI_API_KEY = "test-gemini-key";
   let chatCount = 0;
   env.DB = {
     prepare(sql) {
