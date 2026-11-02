@@ -1,0 +1,34 @@
+name: JobMate checks
+
+on:
+  pull_request:
+    branches:
+      - security/telegram-owner-auth
+  push:
+    branches:
+      - ui/restore-polished-dashboard
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check Worker syntax
+        run: node --check src/index.js
+      - name: Run Telegram authentication tests
+        run: node --test tests/telegram-auth.test.mjs
+      - name: Check frontend inline scripts
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const html = fs.readFileSync("public/index.html", "utf8");
+            const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+              .map(match => match[1]).filter(script => script.trim());
+            for (const script of scripts) new Function(script);
+            console.log("Checked " + scripts.length + " inline script(s).");
+          '
