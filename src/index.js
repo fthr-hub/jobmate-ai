@@ -93,7 +93,7 @@ if(u.pathname==="/api/gmail/messages"&&request.method==="GET"){
   const list=await listRes.json();
   if(!listRes.ok)return j({success:false,error:"Gmail gagal mencari email. Coba hubungkan ulang akun."},502);
   const messages=await Promise.all((list.messages||[]).slice(0,15).map(async item=>{
-   const response=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/"+encodeURIComponent(item.id)+"?"+new URLSearchParams({format:"metadata",metadataHeaders:"Subject",metadataHeaders:"From",metadataHeaders:"Date"}),{headers:{Authorization:"Bearer "+tokens.access_token}});
+   const metaParams=new URLSearchParams({format:"metadata"});metaParams.append("metadataHeaders","Subject");metaParams.append("metadataHeaders","From");metaParams.append("metadataHeaders","Date");const response=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/"+encodeURIComponent(item.id)+"?"+metaParams.toString(),{headers:{Authorization:"Bearer "+tokens.access_token}});
    if(!response.ok)return null;const message=await response.json(),headers=message.payload?.headers||[],get=name=>headers.find(x=>x.name?.toLowerCase()===name.toLowerCase())?.value||"";
    return {id:message.id,thread_id:message.threadId,subject:get("Subject")||"(Tanpa subjek)",from:get("From"),date:get("Date"),snippet:String(message.snippet||"").slice(0,500),internal_date:message.internalDate||null};
   }));
