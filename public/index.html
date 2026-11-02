@@ -1,176 +1,135 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#09090b">
-  <title>JobMate AI</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;background:#09090b;color:#f4f4f5;font-family:Arial,sans-serif;padding:24px 16px}
-    main{max-width:680px;margin:auto}
-    header{margin:20px 0 30px}
-    h1{font-size:30px;margin:0 0 8px}
-    .muted{color:#a1a1aa;line-height:1.6}
-    section{background:#18181b;border:1px solid #303036;border-radius:16px;padding:20px;margin-bottom:18px}
-    h2{font-size:19px;margin:0 0 12px}
-    textarea{width:100%;min-height:150px;background:#09090b;color:white;border:1px solid #3f3f46;border-radius:10px;padding:14px;font:inherit;resize:vertical}
-    input[type=file]{width:100%;margin:12px 0;color:#d4d4d8}
-    button{width:100%;padding:14px;border:0;border-radius:10px;background:#fff;color:#09090b;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px}
-    button:disabled{opacity:.5;cursor:wait}
-    .result{white-space:pre-wrap;line-height:1.7;color:#e4e4e7;margin-top:16px;overflow-wrap:anywhere}
-    .quota{font-size:13px;color:#a1a1aa;margin-top:10px}
-    .status{font-size:13px;color:#fbbf24;margin-top:12px}
-    .preview{width:100%;max-height:300px;object-fit:contain;border-radius:10px;display:none;margin-top:10px}
-    footer{text-align:center;color:#71717a;font-size:12px;padding:20px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>JobMate AI</title>
+<style>
+:root{color-scheme:dark;--bg:#101114;--panel:#1c1d23;--panel2:#23242c;--line:#30313a;--text:#f5f5f7;--muted:#a1a1ad;--purple:#9b8cff;--purple2:#8875ff;--good:#6ed6a2;--warn:#f4c875;--danger:#ff8585}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;padding:0 0 calc(30px + env(safe-area-inset-bottom))}
+button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+.shell{width:min(100% - 32px,760px);margin:0 auto}.top{padding:calc(22px + env(safe-area-inset-top)) 0 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#aa9cff,#7561ef);display:grid;place-items:center;color:#fff;font-weight:900;font-size:18px;box-shadow:0 8px 24px #8875ff30}.brand-name{font-size:16px;font-weight:800;letter-spacing:-.3px}.brand-sub{font-size:11px;color:var(--muted);margin-top:1px}.online{font-size:11px;color:var(--good);border:1px solid #315744;background:#17251f;padding:6px 10px;border-radius:30px;white-space:nowrap}
+.welcome{padding:18px 0 23px}.eyebrow{color:var(--purple);font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}.welcome h1{font-size:clamp(27px,7vw,35px);letter-spacing:-1.2px;line-height:1.15;margin:8px 0}.welcome p{color:var(--muted);margin:0;max-width:520px;font-size:14px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:27px 0 12px}.section-head h2{font-size:17px;letter-spacing:-.3px;margin:0}.section-head p{font-size:12px;color:var(--muted);margin:3px 0 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:18px;margin-bottom:13px}.hero-card{background:radial-gradient(ellipse at 100% 0%,#594a9a35,transparent 48%),var(--panel);border-color:#45405f}.card-title{display:flex;align-items:center;gap:10px;margin-bottom:7px}.icon{width:34px;height:34px;border-radius:11px;background:#302b49;color:#c2b8ff;display:grid;place-items:center;font-size:16px;flex:none}.card h3{font-size:15px;margin:0;font-weight:750}.sub{font-size:13px;color:var(--muted);margin:0 0 15px}
+textarea,input,select{width:100%;background:#121318;border:1px solid #3a3b46;border-radius:12px;color:var(--text);padding:13px 14px;outline:none;transition:border .15s,box-shadow .15s}textarea:focus,input:focus,select:focus{border-color:var(--purple);box-shadow:0 0 0 3px #9b8cff20}textarea{min-height:132px;resize:vertical}input::placeholder,textarea::placeholder{color:#747582}
+.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:750;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:8px}.primary{background:linear-gradient(135deg,#a99bff,#8875ff);color:#171326}.secondary{background:#2a2b34;color:#e8e7f0;border:1px solid #41424e}.ghost{background:transparent;color:var(--purple);border:1px solid #514a75}.danger{background:#3a2228;color:#ffaaaa;border:1px solid #60323a}.wide{width:100%;margin-top:11px}.btn-sm{padding:8px 11px;font-size:12px;border-radius:9px}
+.row{display:flex;gap:10px;align-items:center}.row>*{min-width:0}.between{justify-content:space-between}.field{margin:12px 0}.field label{display:block;color:#c9c8d2;font-size:12px;font-weight:700;margin:0 0 6px}.field small{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+.tabs{display:flex;gap:7px;background:#121318;border:1px solid var(--line);border-radius:12px;padding:4px;margin:14px 0}.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:9px 8px;border-radius:9px;font-size:12px;font-weight:700}.tab.active{background:#302b49;color:#d4ccff}
+.filebox{border:1px dashed #55516d;background:#171720;border-radius:13px;padding:15px;text-align:center}.filebox input{padding:0;border:0;background:transparent;font-size:12px}.filebox .filehint{color:var(--muted);font-size:11px;margin-top:6px}
+.status{font-size:12px;color:var(--warn);margin-top:10px;white-space:pre-wrap}.result{display:none;margin-top:14px;background:#14151b;border:1px solid #383747;border-radius:13px;padding:14px;color:#e7e5f0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7}.result.show{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.feature{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px;min-height:125px;text-align:left;color:var(--text);display:flex;flex-direction:column;gap:8px}.feature .icon{width:32px;height:32px}.feature strong{font-size:13px}.feature span:last-child{font-size:11px;color:var(--muted);line-height:1.4}
+.panel{display:none}.panel.active{display:block}.item{background:#17181e;border:1px solid #30313a;border-radius:13px;padding:13px;margin-top:10px}.item h4{font-size:13px;margin:0 0 3px}.item p{font-size:11px;color:var(--muted);margin:0 0 8px;white-space:pre-wrap;overflow-wrap:anywhere}.tag{display:inline-flex;font-size:10px;padding:4px 8px;border-radius:30px;background:#302b49;color:#c8beff}.empty{padding:20px 10px;text-align:center;color:var(--muted);font-size:12px}.item-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.stats{display:flex;gap:9px;margin:14px 0}.stat{flex:1;background:#17181e;border:1px solid var(--line);border-radius:12px;padding:11px}.stat b{font-size:19px;display:block}.stat span{font-size:10px;color:var(--muted)}
+.hidden{display:none!important}.footer{text-align:center;color:#747582;font-size:10px;padding:30px 0 10px;letter-spacing:.4px}
+@media(min-width:600px){.card{padding:21px}.grid{gap:14px}.welcome{padding-top:28px}.top{padding-top:28px}}
+@media(max-width:390px){.shell{width:calc(100% - 24px)}.card{padding:15px}.grid{gap:8px}.feature{padding:12px}}
+</style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>JobMate AI</h1>
-    <div class="muted">Asisten AI untuk memahami lowongan dan mempersiapkan lamaran kerja.</div>
+<div class="shell">
+  <div class="top">
+    <div class="brand"><div class="logo">J</div><div><div class="brand-name">JobMate AI</div><div class="brand-sub">PERSONAL CAREER ASSISTANT</div></div></div>
+    <div class="online">● Sistem aktif</div>
+  </div>
+
+  <header class="welcome">
+    <div class="eyebrow">WORK SMARTER, GET HIRED</div>
+    <h1>Halo, selamat datang.</h1>
+    <p>Teman persiapan kariermu. Analisis lowongan, rapikan dokumen, dan pantau setiap lamaran dalam satu tempat.</p>
   </header>
 
-  <section>
-    <h2>Analisis Teks Lowongan</h2>
-    <p class="muted">Tempel deskripsi pekerjaan yang ingin kamu analisis.</p>
-    <textarea id="vacancy" placeholder="Tempel deskripsi lowongan kerja di sini..."></textarea>
-    <button id="textButton" onclick="analyzeText()">Analisis Lowongan</button>
-    <div id="textStatus" class="status"></div>
-    <div id="textResult" class="result"></div>
+  <div class="section-head"><div><h2>Asisten Lowongan</h2><p>Pahami peluang kerja sebelum melamar.</p></div></div>
+  <section class="card hero-card">
+    <div class="card-title"><div class="icon">✦</div><h3>Analisis Lowongan</h3></div>
+    <p class="sub">Tempel deskripsi atau unggah foto lowongan untuk mendapatkan analisis dari AI.</p>
+    <div class="tabs"><button class="tab active" data-tab="textPanel">Tempel teks</button><button class="tab" data-tab="imagePanel">Unggah foto</button></div>
+    <div class="panel active" id="textPanel">
+      <textarea id="vacancy" maxlength="12000" placeholder="Tempel deskripsi pekerjaan di sini..."></textarea>
+      <button class="btn primary wide" id="textButton" onclick="analyzeText()">✦ Analisis lowongan</button>
+      <div class="status" id="textStatus"></div><div class="result" id="textResult"></div>
+    </div>
+    <div class="panel" id="imagePanel">
+      <div class="filebox"><div style="font-size:24px;margin-bottom:5px">▧</div><div style="font-size:12px;font-weight:700">Pilih foto atau screenshot lowongan</div><div class="filehint">JPG, PNG, WEBP · Maksimal 6 MB</div><input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp"></div>
+      <img id="preview" class="hidden" alt="Preview foto" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;margin-top:10px">
+      <div class="row between" style="margin-top:10px"><span class="sub" id="quota" style="margin:0">Memuat kuota foto...</span></div>
+      <button class="btn primary wide" id="imageButton" onclick="analyzeImage()">✦ Baca & analisis foto</button>
+      <div class="status" id="imageStatus"></div><div class="result" id="imageResult"></div>
+    </div>
   </section>
 
-  <section>
-    <h2>Baca Foto Lowongan</h2>
-    <p class="muted">Upload screenshot atau foto lowongan. JPG, PNG, atau WEBP. Maksimal 10 foto per hari.</p>
-    <div class="quota" id="quota">Memuat kuota foto...</div>
-    <input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp">
-    <img id="preview" class="preview" alt="Preview foto lowongan">
-    <button id="imageButton" onclick="analyzeImage()">Baca & Analisis Foto</button>
-    <div id="imageStatus" class="status"></div>
-    <div id="imageResult" class="result"></div>
+  <div class="section-head"><div><h2>Ruang Kerjamu</h2><p>Kelola persiapan dan progres lamaran.</p></div></div>
+  <div class="grid">
+    <button class="feature" onclick="showPanel('profilePanel')"><span class="icon">♙</span><strong>Profil & CV</strong><span>Data diri, pengalaman, pendidikan, dan dokumen CV.</span></button>
+    <button class="feature" onclick="showPanel('applicationsPanel')"><span class="icon">▤</span><strong>Riwayat Lamaran</strong><span>Simpan lowongan dan pantau status proses rekrutmen.</span></button>
+  </div>
+
+  <section class="panel card" id="profilePanel">
+    <div class="row between"><div><div class="eyebrow">PERSONAL PROFILE</div><h3 style="margin:4px 0 0">Profil & CV</h3></div><button class="btn btn-sm secondary" onclick="hidePanels()">Tutup</button></div>
+    <p class="sub" style="margin-top:7px">Lengkapi informasi agar persiapan lamaran lebih mudah.</p>
+    <form id="profileForm">
+      <div class="field"><label>Nama lengkap</label><input name="full_name" placeholder="Nama sesuai identitas"></div>
+      <div class="field"><label>Email</label><input name="email" type="email" placeholder="nama@email.com"></div>
+      <div class="field"><label>Nomor telepon</label><input name="phone" type="tel" placeholder="08xxxxxxxxxx"></div>
+      <div class="field"><label>Alamat</label><textarea name="address" rows="2" style="min-height:75px" placeholder="Kota dan alamat domisili"></textarea></div>
+      <div class="field"><label>Keahlian</label><textarea name="skills" placeholder="Tuliskan keahlian yang kamu miliki"></textarea></div>
+      <div class="field"><label>Pengalaman kerja</label><textarea name="experience" placeholder="Posisi, perusahaan, dan tanggung jawab"></textarea></div>
+      <div class="field"><label>Pendidikan</label><textarea name="education" placeholder="Sekolah, jurusan, dan tahun lulus"></textarea></div>
+      <button class="btn primary wide" type="submit" id="saveProfile">Simpan profil</button><div class="status" id="profileStatus"></div>
+    </form>
+    <div class="section-head"><div><h2>Dokumen CV</h2><p>PDF, DOC, atau DOCX · Maksimal 900 KB</p></div></div>
+    <form id="documentForm"><div class="filebox"><input type="file" id="cvFile" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div><button class="btn secondary wide" type="submit" id="uploadCv">＋ Unggah CV</button><div class="status" id="documentStatus"></div></form>
+    <div id="documentsList"></div>
   </section>
 
-  <section>
-    <h2>Profil & CV</h2>
-    <p class="muted">Fitur pengelolaan profil dan dokumen akan disiapkan pada tahap berikutnya.</p>
+  <section class="panel card" id="applicationsPanel">
+    <div class="row between"><div><div class="eyebrow">APPLICATION TRACKER</div><h3 style="margin:4px 0 0">Riwayat Lamaran</h3></div><button class="btn btn-sm secondary" onclick="hidePanels()">Tutup</button></div>
+    <div class="stats"><div class="stat"><b id="totalApps">0</b><span>Total lamaran</span></div><div class="stat"><b id="activeApps">0</b><span>Dalam proses</span></div><div class="stat"><b id="interviewApps">0</b><span>Interview</span></div></div>
+    <button class="btn primary wide" onclick="toggleApplicationForm()">＋ Tambah lamaran</button>
+    <form id="applicationForm" class="hidden" style="margin-top:14px">
+      <input type="hidden" name="id">
+      <div class="field"><label>Nama perusahaan</label><input name="company_name" required placeholder="Nama perusahaan"></div>
+      <div class="field"><label>Posisi yang dilamar</label><input name="position" required placeholder="Contoh: Staff Administrasi"></div>
+      <div class="field"><label>Tanggal melamar</label><input name="applied_at" type="date"></div>
+      <div class="field"><label>Status</label><select name="status"><option value="draft">Belum dikirim</option><option value="applied">Sudah melamar</option><option value="interview">Interview</option><option value="accepted">Diterima</option><option value="rejected">Ditolak</option></select></div>
+      <div class="field"><label>Deskripsi lowongan</label><textarea name="job_description" placeholder="Catatan singkat tentang lowongan"></textarea></div>
+      <div class="field"><label>Catatan pribadi</label><textarea name="notes" placeholder="Kontak HR, jadwal, tindak lanjut..."></textarea></div>
+      <div class="row"><button class="btn primary" type="submit" id="saveApplication">Simpan</button><button class="btn secondary" type="button" onclick="toggleApplicationForm(false)">Batal</button></div>
+      <div class="status" id="applicationStatus"></div>
+    </form>
+    <div id="applicationsList"></div>
   </section>
 
-  <section>
-    <h2>Riwayat Lamaran</h2>
-    <p class="muted">Fitur penyimpanan dan pemantauan lamaran akan disiapkan pada tahap berikutnya.</p>
-  </section>
-
-  <footer>JobMate AI · Your personal career assistant</footer>
-</main>
-
+  <footer class="footer">JOBMATE AI · YOUR PERSONAL CAREER ASSISTANT</footer>
+</div>
 <script>
-const $ = id => document.getElementById(id);
-
-async function analyzeText() {
-  const vacancy = $("vacancy").value.trim();
-  if (!vacancy) {
-    $("textStatus").textContent = "Masukkan deskripsi lowongan terlebih dahulu.";
-    return;
-  }
-
-  const button = $("textButton");
-  button.disabled = true;
-  button.textContent = "Sedang menganalisis...";
-  $("textStatus").textContent = "";
-  $("textResult").textContent = "";
-
-  try {
-    const response = await fetch("/api/analyze", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({vacancy})
-    });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Analisis gagal.");
-    $("textResult").textContent = data.result;
-  } catch (error) {
-    $("textStatus").textContent = error.message;
-  } finally {
-    button.disabled = false;
-    button.textContent = "Analisis Lowongan";
-  }
-}
-
-async function loadQuota() {
-  try {
-    const response = await fetch("/api/image-usage");
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Kuota belum tersedia.");
-    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
-    $("imageButton").disabled = data.remaining <= 0;
-  } catch (error) {
-    $("quota").textContent = "Kuota belum dapat dimuat: " + error.message;
-  }
-}
-
-$("imageInput").addEventListener("change", () => {
-  const file = $("imageInput").files[0];
-  $("preview").style.display = "none";
-  if (!file) return;
-  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
-    $("imageStatus").textContent = "Format harus JPG, PNG, atau WEBP.";
-    $("imageInput").value = "";
-    return;
-  }
-  if (file.size > 6 * 1024 * 1024) {
-    $("imageStatus").textContent = "Ukuran foto maksimal 6 MB.";
-    $("imageInput").value = "";
-    return;
-  }
-  $("imageStatus").textContent = "";
-  $("preview").src = URL.createObjectURL(file);
-  $("preview").style.display = "block";
-});
-
-async function analyzeImage() {
-  const file = $("imageInput").files[0];
-  if (!file) {
-    $("imageStatus").textContent = "Pilih foto lowongan terlebih dahulu.";
-    return;
-  }
-
-  const button = $("imageButton");
-  button.disabled = true;
-  button.textContent = "Sedang membaca foto...";
-  $("imageStatus").textContent = "";
-  $("imageResult").textContent = "";
-
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = () => reject(new Error("Foto gagal dibaca."));
-      reader.readAsDataURL(file);
-    });
-
-    const response = await fetch("/api/analyze-image", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({image:base64,mimeType:file.type})
-    });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || "Gagal membaca foto.");
-
-    $("imageResult").textContent = data.result;
-    $("quota").textContent = `Kuota foto hari ini: ${data.used}/10 · Sisa ${data.remaining} foto`;
-  } catch (error) {
-    $("imageStatus").textContent = error.message;
-    await loadQuota();
-  } finally {
-    button.disabled = false;
-    button.textContent = "Baca & Analisis Foto";
-    await loadQuota();
-  }
-}
-
+const $=id=>document.getElementById(id);
+const telegramApp=window.Telegram?.WebApp;
+telegramApp?.ready?.();telegramApp?.expand?.();
+const api=async(path,options={})=>{const initData=telegramApp?.initData||"";if(!initData)throw new Error("Buka aplikasi melalui bot Telegram resmi agar sesi aman dapat diverifikasi.");const headers=new Headers(options.headers||{});headers.set("Authorization","tma "+initData);const r=await fetch(path,{...options,headers});let d={};try{d=await r.json()}catch{}if(!r.ok||d.success===false)throw new Error(d.error||"Permintaan gagal.");return d};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll("#textPanel,#imagePanel").forEach(x=>x.classList.toggle("active",x.id===b.dataset.tab))}));
+function showPanel(id){hidePanels();$(id).classList.add("active");$(id).scrollIntoView({behavior:"smooth",block:"start"});if(id==="profilePanel"){loadProfile();loadDocuments()}else loadApplications()}
+function hidePanels(){["profilePanel","applicationsPanel"].forEach(id=>$(id).classList.remove("active"))}
+function setStatus(id,msg){$(id).textContent=msg||""}
+function showResult(id,msg){$(id).textContent=msg||"";$(id).classList.toggle("show",!!msg)}
+async function analyzeText(){const vacancy=$("vacancy").value.trim();if(!vacancy){setStatus("textStatus","Masukkan deskripsi lowongan terlebih dahulu.");return}const b=$("textButton");b.disabled=true;b.textContent="Sedang menganalisis...";setStatus("textStatus","");showResult("textResult","");try{const d=await api("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vacancy})});showResult("textResult",d.result)}catch(e){setStatus("textStatus",e.message)}finally{b.disabled=false;b.textContent="✦ Analisis lowongan"}}
+async function loadQuota(){try{const d=await api("/api/image-usage");$("quota").textContent="Kuota foto hari ini: "+d.image.used+"/"+d.image.limit+" · Sisa "+d.image.remaining+" foto";$("imageButton").disabled=d.image.remaining<=0}catch(e){$("quota").textContent="Kuota belum tersedia"}}
+$("imageInput").addEventListener("change",()=>{const f=$("imageInput").files[0];$("preview").classList.add("hidden");if(!f)return;if(!["image/jpeg","image/png","image/webp"].includes(f.type)||f.size>6*1024*1024){setStatus("imageStatus","Pilih JPG, PNG, atau WEBP maksimal 6 MB.");$("imageInput").value="";return}setStatus("imageStatus","");$("preview").src=URL.createObjectURL(f);$("preview").classList.remove("hidden")});
+async function analyzeImage(){const f=$("imageInput").files[0];if(!f){setStatus("imageStatus","Pilih foto lowongan terlebih dahulu.");return}const b=$("imageButton");b.disabled=true;b.textContent="Sedang membaca foto...";setStatus("imageStatus","");showResult("imageResult","");try{const base64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(",")[1]);r.onerror=()=>no(new Error("Foto gagal dibaca."));r.readAsDataURL(f)});const d=await api("/api/analyze-image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:base64,mimeType:f.type})});showResult("imageResult",d.result)}catch(e){setStatus("imageStatus",e.message)}finally{b.disabled=false;b.textContent="✦ Baca & analisis foto";loadQuota()}}
+async function loadProfile(){setStatus("profileStatus","Memuat profil...");try{const d=await api("/api/profile");const f=$("profileForm");Object.keys(d.profile||{}).forEach(k=>{if(f.elements[k])f.elements[k].value=d.profile[k]||""});setStatus("profileStatus","")}catch(e){setStatus("profileStatus",e.message)}}
+$("profileForm").addEventListener("submit",async e=>{e.preventDefault();const b=$("saveProfile");b.disabled=true;setStatus("profileStatus","Menyimpan...");const data=Object.fromEntries(new FormData(e.currentTarget).entries());try{await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});setStatus("profileStatus","Profil berhasil disimpan.")}catch(err){setStatus("profileStatus",err.message)}finally{b.disabled=false}});
+async function loadDocuments(){const el=$("documentsList");el.innerHTML='<div class="empty">Memuat dokumen...</div>';try{const d=await api("/api/documents");el.innerHTML=d.documents.length?d.documents.map(x=>'<div class="item"><div class="row between"><div><h4>'+esc(x.file_name)+'</h4><p>'+esc(x.file_type)+' · '+esc(x.created_at||"")+'</p></div><span class="tag">CV</span></div><div class="item-actions"><button class="btn btn-sm secondary" onclick="downloadDocument(&quot;'+encodeURIComponent(x.id)+'&quot;)">Unduh</button><button class="btn btn-sm danger" onclick="deleteDocument(&quot;'+encodeURIComponent(x.id)+'&quot;)">Hapus</button></div></div>').join(""):'<div class="empty">Belum ada dokumen CV.</div>'}catch(e){el.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}}
+$("documentForm").addEventListener("submit",async e=>{e.preventDefault();const f=$("cvFile").files[0];if(!f){setStatus("documentStatus","Pilih file CV terlebih dahulu.");return}const b=$("uploadCv");b.disabled=true;setStatus("documentStatus","Mengunggah CV...");try{const form=new FormData();form.append("file",f);await api("/api/documents",{method:"POST",body:form});$("cvFile").value="";setStatus("documentStatus","CV berhasil diunggah.");loadDocuments()}catch(err){setStatus("documentStatus",err.message)}finally{b.disabled=false}});
+async function downloadDocument(id){try{const initData=telegramApp?.initData||"";if(!initData)throw new Error("Sesi Telegram tidak ditemukan.");const r=await fetch("/api/documents/"+decodeURIComponent(id),{headers:{Authorization:"tma "+initData}});if(!r.ok)throw new Error("Dokumen gagal diunduh.");const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="CV";a.click();URL.revokeObjectURL(url)}catch(e){alert(e.message)}}
+async function deleteDocument(id){if(!confirm("Hapus dokumen CV ini?"))return;try{await api("/api/documents/"+decodeURIComponent(id),{method:"DELETE"});loadDocuments()}catch(e){alert(e.message)}}
+function toggleApplicationForm(force){const f=$("applicationForm");f.classList.toggle("hidden",force===undefined?!f.classList.contains("hidden"):!force);if(force===false){f.reset();f.elements.id.value=""}if(!f.classList.contains("hidden"))f.scrollIntoView({behavior:"smooth",block:"nearest"})}
+async function loadApplications(){const el=$("applicationsList");el.innerHTML='<div class="empty">Memuat riwayat...</div>';try{const d=await api("/api/applications"),a=d.applications||[];$("totalApps").textContent=a.length;$("activeApps").textContent=a.filter(x=>["applied","interview"].includes(x.status)).length;$("interviewApps").textContent=a.filter(x=>x.status==="interview").length;const labels={draft:"Belum dikirim",applied:"Sudah melamar",interview:"Interview",accepted:"Diterima",rejected:"Ditolak"};el.innerHTML=a.length?a.map(x=>'<div class="item"><div class="row between"><div><h4>'+esc(x.position||"Posisi belum diisi")+'</h4><p>'+esc(x.company_name||"Perusahaan")+' · '+esc(x.applied_at||"Tanggal belum diisi")+'</p></div><span class="tag">'+esc(labels[x.status]||x.status)+'</span></div>'+(x.notes?'<p>'+esc(x.notes)+'</p>':'')+'<div class="item-actions"><button class="btn btn-sm secondary" onclick="editApplication(&quot;'+encodeURIComponent(x.id)+'&quot;)">Edit</button><button class="btn btn-sm danger" onclick="deleteApplication(&quot;'+encodeURIComponent(x.id)+'&quot;)">Hapus</button></div></div>').join(""):'<div class="empty">Belum ada riwayat lamaran. Tambahkan lamaran pertamamu.</div>';window.appData=a}catch(e){el.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}}
+function editApplication(id){const x=(window.appData||[]).find(a=>a.id===decodeURIComponent(id));if(!x)return;const f=$("applicationForm");toggleApplicationForm(true);Object.keys(x).forEach(k=>{if(f.elements[k])f.elements[k].value=x[k]||""});f.scrollIntoView({behavior:"smooth",block:"start"})}
+$("applicationForm").addEventListener("submit",async e=>{e.preventDefault();const f=e.currentTarget,b=$("saveApplication"),data=Object.fromEntries(new FormData(f).entries()),id=data.id;delete data.id;b.disabled=true;setStatus("applicationStatus","Menyimpan...");try{await api(id?"/api/applications/"+encodeURIComponent(id):"/api/applications",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});setStatus("applicationStatus","Lamaran berhasil disimpan.");f.reset();f.elements.id.value="";toggleApplicationForm(false);loadApplications()}catch(err){setStatus("applicationStatus",err.message)}finally{b.disabled=false}});
+async function deleteApplication(id){if(!confirm("Hapus catatan lamaran ini?"))return;try{await api("/api/applications/"+decodeURIComponent(id),{method:"DELETE"});loadApplications()}catch(e){alert(e.message)}}
 loadQuota();
 </script>
 </body>
