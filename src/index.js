@@ -30,7 +30,7 @@ const authHeader=request.headers.get("Authorization")||"";
 const initData=authHeader.startsWith("tma ")?authHeader.slice(4):"";
 let telegramUser=null;
 try{telegramUser=await verifyTelegramInitData(initData,env.TELEGRAM_BOT_TOKEN)}catch{}
-const ownerId=String(env.OWNER_TELEGRAM_ID||"8007247617");
+const ownerId=String(env.OWNER_TELEGRAM_ID||"");
 if(!telegramUser||String(telegramUser.id)!==ownerId){
   if(u.pathname.startsWith("/api/"))return j({success:false,error:"Akses ditolak. Buka JobMate AI melalui bot Telegram resmi."},401);
   return env.ASSETS.fetch(request);
