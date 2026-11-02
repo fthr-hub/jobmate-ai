@@ -444,7 +444,7 @@ test("uses the saved candidate profile in both text and image vacancy analysis",
           return {
             run: async () => ({ success: true, meta: { changes: 1 } }),
             first: async () => {
-              if (sql.includes("SELECT full_name,skills,experience,education FROM profiles")) return profile;
+              if (sql.includes("FROM profiles")) return profile;
               if (sql.startsWith("INSERT INTO ai_usage")) {
                 const column = sql.includes("image_count") ? "image_count" : "text_count";
                 return { [column]: 1 };
