@@ -368,3 +368,60 @@ test("refunds reserved AI quota after upstream Gemini failures", () => {
   assert.match(source, /reservedQuotaKind="text"/);
   assert.match(source, /reservedQuotaKind="image"/);
 });
+
+
+test("restores chat quota when Gemini returns an upstream error", async () => {
+  const env = mockEnv();
+  let chatCount = 0;
+  env.DB = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            run: async () => {
+              if (sql.startsWith("UPDATE ai_usage SET chat_count=")) {
+                chatCount = Math.max(0, chatCount - 1);
+              }
+              return { success: true, meta: { changes: 1 } };
+            },
+            first: async () => {
+              if (sql.startsWith("INSERT INTO ai_usage")) {
+                if (chatCount >= 30) return null;
+                chatCount += 1;
+                return { chat_count: chatCount };
+              }
+              if (sql.includes("SELECT text_count,image_count,chat_count")) {
+                return { text_count: 0, image_count: 0, chat_count: chatCount };
+              }
+              return null;
+            },
+            all: async () => ({ results: [] })
+          };
+        }
+      };
+    }
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ error: { message: "simulated Gemini outage" } }),
+    { status: 503, headers: { "Content-Type": "application/json" } }
+  );
+  try {
+    const response = await worker.fetch(
+      new Request("https://jobmate.test/api/chat", {
+        method: "POST",
+        headers: {
+          Authorization: "tma " + await signedInitData(),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ messages: [{ role: "user", content: "Bantu cek CV saya" }] })
+      }),
+      env
+    );
+    assert.equal(response.status, 502);
+    assert.equal(chatCount, 0, "failed Gemini requests must not consume chat quota");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
