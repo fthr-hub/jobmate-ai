@@ -138,3 +138,10 @@ test("does not delete document contents unless the document belongs to the owner
   assert.match(contentDelete.sql, /EXISTS\s*\(SELECT 1 FROM documents/);
   assert.deepEqual(contentDelete.values, ["not-owned", "not-owned", OWNER_ID]);
 });
+
+
+test("keeps the frontend and backend image upload limits aligned at 6 MiB", async () => {
+  const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.match(html, /f\.size\s*>\s*6\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(source, /maxImageBase64Length\s*=\s*4\s*\*\s*Math\.ceil\(\(6\s*\*\s*1024\s*\*\s*1024\)\s*\/\s*3\)/);
+});
