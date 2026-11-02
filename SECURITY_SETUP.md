@@ -38,3 +38,9 @@ The owner check currently uses `OWNER_TELEGRAM_ID` if configured, otherwise the 
 8. Verify existing owner data remains accessible before any production rollout.
 
 Do not deploy until the secret is configured and the checks above pass. This branch has not been deployed.
+
+## Current production pre-check (read-only)
+
+The current production Worker version's bindings include `GEMINI_API_KEY`, but not `TELEGRAM_BOT_TOKEN`. The Telegram secret must therefore be added before the authenticated build can be deployed. Adding a Worker secret publishes a new version, so wait for explicit deployment approval.
+
+A read-only D1 inspection confirmed there are currently zero rows under the legacy `telegram_id='personal'` identity and zero rows under owner ID `8007247617` in `users`, `profiles`, `applications`, and `documents`. No legacy-row migration is currently required. No database writes were performed during this inspection.
