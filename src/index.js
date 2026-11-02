@@ -4,6 +4,35 @@ const u=new URL(request.url);
 const j=(d,s=200,h={})=>Response.json(d,{status:s,headers:h});
 if(request.method==="OPTIONS")return new Response(null,{status:204});
 if(u.pathname==="/api/health")return j({success:true,app:"JobMate AI",status:"online",model:"gemini-3.5-flash-lite"});
+const gmailRedirect=origin=>new URL("/oauth/gmail/callback",origin).toString();
+const b64bytes=a=>btoa(String.fromCharCode(...new Uint8Array(a)));
+const encryptGmailTokens=async(value,keyText)=>{const keyBytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(keyText));const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["encrypt"]);const iv=crypto.getRandomValues(new Uint8Array(12));const data=new TextEncoder().encode(JSON.stringify(value));const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,data);return b64bytes(iv)+"."+b64bytes(cipher);};
+const decryptGmailTokens=async(value,keyText)=>{const [ivText,dataText]=String(value).split(".");const decode=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));const keyBytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(keyText));const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["decrypt"]);const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:decode(ivText)},key,decode(dataText));return JSON.parse(new TextDecoder().decode(plain));};
+if(u.pathname==="/oauth/gmail/callback"&&request.method==="GET"){
+ const code=u.searchParams.get("code"),state=u.searchParams.get("state"),error=u.searchParams.get("error");
+ const page=(title,message)=>new Response("<!doctype html><meta name='viewport' content='width=device-width'><meta name='color-scheme' content='dark'><style>body{font:16px system-ui;background:#090b10;color:#edf2f8;display:grid;place-items:center;min-height:90vh;text-align:center;padding:24px}main{max-width:440px}h2{color:#b7f36b}</style><main><h2>"+title+"</h2><p>"+message+"</p><p>Lu bisa tutup halaman ini dan balik ke Telegram.</p></main>",{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}});
+ if(error)return page("Gmail belum terhubung","Google membatalkan izin Gmail. Balik ke JobMate dan coba lagi kalau sudah siap.");
+ if(!code||!state||!env.DB||!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.GMAIL_TOKEN_ENCRYPTION_KEY)return page("Konfigurasi belum lengkap","JobMate belum dikonfigurasi untuk menerima koneksi Gmail.");
+ try{
+  const pending=await env.DB.prepare("SELECT telegram_id,code_verifier,expires_at FROM gmail_oauth_states WHERE state=?").bind(state).first();
+  if(!pending||Number(pending.expires_at)<Date.now())return page("Sesi kedaluwarsa","Mulai koneksi Gmail lagi dari Mini App JobMate.");
+  await env.DB.prepare("DELETE FROM gmail_oauth_states WHERE state=?").bind(state).run();
+  const redirectUri=gmailRedirect(u.origin);
+  const tokenRes=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:redirectUri,grant_type:"authorization_code",code_verifier:pending.code_verifier})});
+  const tokens=await tokenRes.json();
+  if(!tokenRes.ok||!tokens.access_token)throw new Error("Google token exchange failed");
+  const profileRes=await fetch("https://www.googleapis.com/oauth2/v2/userinfo",{headers:{Authorization:"Bearer "+tokens.access_token}});
+  const profile=await profileRes.json();
+  if(!profileRes.ok||!profile.email)throw new Error("Google profile lookup failed");
+  const previous=await env.DB.prepare("SELECT encrypted_tokens FROM gmail_connections WHERE telegram_id=?").bind(pending.telegram_id).first();
+  let old={};if(previous?.encrypted_tokens){try{old=await decryptGmailTokens(previous.encrypted_tokens,env.GMAIL_TOKEN_ENCRYPTION_KEY)}catch{}}
+  const stored={access_token:tokens.access_token,refresh_token:tokens.refresh_token||old.refresh_token||null,expires_at:Date.now()+Number(tokens.expires_in||3600)*1000,scope:tokens.scope||"https://www.googleapis.com/auth/gmail.readonly"};
+  if(!stored.refresh_token)throw new Error("Google did not return a refresh token; revoke previous access and reconnect with consent.");
+  const encrypted=await encryptGmailTokens(stored,env.GMAIL_TOKEN_ENCRYPTION_KEY);
+  await env.DB.prepare("INSERT INTO gmail_connections(telegram_id,email,encrypted_tokens,updated_at) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(telegram_id) DO UPDATE SET email=excluded.email,encrypted_tokens=excluded.encrypted_tokens,updated_at=CURRENT_TIMESTAMP").bind(pending.telegram_id,profile.email,encrypted).run();
+  return page("Gmail berhasil terhubung","Akun "+String(profile.email).replace(/[&<>"]/g,"")+" sudah tersambung ke JobMate AI.");
+ }catch{return page("Koneksi Gmail gagal","Ada kendala saat menyelesaikan OAuth Google. Coba ulangi dari JobMate.");}
+}
 // Telegram Mini App authentication: verify the signed initData on every private API request.
 const verifyTelegramInitData=async(raw,botToken)=>{
   if(!raw||!botToken)return null;
@@ -37,6 +66,22 @@ if(!telegramUser||String(telegramUser.id)!==ownerId){
   return new Response(APP_HTML,{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}});
 }
 const uid=String(telegramUser.id),ensure=()=>env.DB.prepare("INSERT OR IGNORE INTO users(telegram_id,first_name) VALUES(?,?)").bind(uid,String(telegramUser.first_name||"Pengguna").slice(0,120)).run();
+if(u.pathname==="/api/gmail/connect"&&request.method==="POST"){
+ if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.GMAIL_TOKEN_ENCRYPTION_KEY)return j({success:false,error:"Integrasi Gmail belum dikonfigurasi di Cloudflare."},503);
+ const state=crypto.randomUUID(),verifier=b64bytes(crypto.getRandomValues(new Uint8Array(48))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"");
+ const challenge=b64bytes(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"");
+ await env.DB.prepare("INSERT INTO gmail_oauth_states(state,telegram_id,code_verifier,expires_at) VALUES(?,?,?,?)").bind(state,uid,verifier,Date.now()+10*60*1000).run();
+ const params=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:gmailRedirect(u.origin),response_type:"code",scope:"https://www.googleapis.com/auth/gmail.readonly",access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"});
+ return j({success:true,auth_url:"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString()});
+}
+if(u.pathname==="/api/gmail/status"&&request.method==="GET"){
+ const row=await env.DB.prepare("SELECT email,updated_at FROM gmail_connections WHERE telegram_id=?").bind(uid).first();
+ return j({success:true,connected:!!row,email:row?.email||null,connected_at:row?.updated_at||null});
+}
+if(u.pathname==="/api/gmail/disconnect"&&request.method==="POST"){
+ await env.DB.prepare("DELETE FROM gmail_connections WHERE telegram_id=?").bind(uid).run();
+ return j({success:true});
+}
 if(u.pathname==="/api/me"||u.pathname==="/api/profile"){await ensure();const p=await env.DB.prepare("SELECT * FROM profiles WHERE telegram_id=?").bind(uid).first();if(u.pathname==="/api/me")return j({success:true,user:{first_name:String(telegramUser.first_name||"Pengguna"),last_name:String(telegramUser.last_name||""),username:telegramUser.username||null},profile:p||{}});if(request.method==="GET")return j({success:true,profile:p||{full_name:"",email:"",phone:"",address:"",skills:"",experience:"",education:""}});if(!["PUT","POST"].includes(request.method))return j({success:false,error:"Method not allowed."},405);const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data profil tidak valid."},400);const limits={full_name:200,email:200,phone:60,address:500,skills:12000,experience:12000,education:12000},f=Object.keys(limits),v=f.map(k=>String(b[k]??"").trim().slice(0,limits[k]));if(v[1]&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v[1]))return j({success:false,error:"Format email tidak valid."},400);await env.DB.prepare("INSERT INTO profiles(telegram_id,full_name,email,phone,address,skills,experience,education,updated_at) VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(telegram_id) DO UPDATE SET full_name=excluded.full_name,email=excluded.email,phone=excluded.phone,address=excluded.address,skills=excluded.skills,experience=excluded.experience,education=excluded.education,updated_at=CURRENT_TIMESTAMP").bind(uid,...v).run();return j({success:true,profile:await env.DB.prepare("SELECT * FROM profiles WHERE telegram_id=?").bind(uid).first()});}
 if(u.pathname==="/api/applications"){await ensure();if(request.method==="GET"){const {results}=await env.DB.prepare("SELECT * FROM applications WHERE telegram_id=? ORDER BY COALESCE(applied_at,created_at) DESC").bind(uid).all();return j({success:true,applications:results});}if(request.method==="POST"){const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data lamaran tidak valid."},400);const company=String(b.company_name||"").trim(),position=String(b.position||"").trim();if(!company||!position)return j({success:false,error:"Nama perusahaan dan posisi wajib diisi."},400);const id=crypto.randomUUID(),st=["draft","applied","interview","accepted","rejected"].includes(b.status)?b.status:"draft";await env.DB.prepare("INSERT INTO applications(id,telegram_id,company_name,position,job_description,status,notes,applied_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,uid,String(b.company_name||"").slice(0,200),String(b.position||"").slice(0,200),String(b.job_description||"").slice(0,12000),st,String(b.notes||"").slice(0,12000),b.applied_at||null).run();return j({success:true,application:await env.DB.prepare("SELECT * FROM applications WHERE id=?").bind(id).first()},201);}return j({success:false,error:"Method not allowed."},405);}
 let m=u.pathname.match(/^\/api\/applications\/([^/]+)$/);if(m){await ensure();const id=m[1];if(request.method==="PUT"){const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data lamaran tidak valid."},400);const company=String(b.company_name||"").trim(),position=String(b.position||"").trim();if(!company||!position)return j({success:false,error:"Nama perusahaan dan posisi wajib diisi."},400);const st=["draft","applied","interview","accepted","rejected"].includes(b.status)?b.status:"draft",r=await env.DB.prepare("UPDATE applications SET company_name=?,position=?,job_description=?,status=?,notes=?,applied_at=? WHERE id=? AND telegram_id=?").bind(company.slice(0,200),position.slice(0,200),String(b.job_description||"").slice(0,12000),st,String(b.notes||"").slice(0,12000),b.applied_at||null,id,uid).run();if(!r.meta?.changes)return j({success:false,error:"Lamaran tidak ditemukan."},404);return j({success:true,application:await env.DB.prepare("SELECT * FROM applications WHERE id=?").bind(id).first()});}if(request.method==="DELETE"){const r=await env.DB.prepare("DELETE FROM applications WHERE id=? AND telegram_id=?").bind(id,uid).run();return r.meta?.changes?j({success:true}):j({success:false,error:"Lamaran tidak ditemukan."},404);}return j({success:false,error:"Method not allowed."},405);}
