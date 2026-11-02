@@ -1,5 +1,5 @@
 -- Daily AI quotas are scoped to the verified Telegram owner account.
--- Counts reset by UTC calendar date; updates are atomic to prevent parallel-request bypasses.
+-- Counts reset by Asia/Jakarta calendar date (WIB); updates are atomic to prevent parallel-request bypasses.
 CREATE TABLE IF NOT EXISTS ai_usage (
   telegram_id TEXT NOT NULL,
   usage_date TEXT NOT NULL,
