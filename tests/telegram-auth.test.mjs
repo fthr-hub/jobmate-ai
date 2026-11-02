@@ -279,3 +279,10 @@ test("stores CV metadata and file content in one atomic D1 batch", async () => {
   assert.match(batches[0][0].sql, /INSERT INTO documents/);
   assert.match(batches[0][1].sql, /INSERT INTO document_contents/);
 });
+
+
+test("does not send unsupported sampling parameters to Gemini 3.5 Flash-Lite", async () => {
+  assert.doesNotMatch(source, /generationConfig:\{[^}]*temperature\s*:/);
+  assert.match(source, /generationConfig:\{maxOutputTokens:1800\}/);
+  assert.match(source, /generationConfig:\{maxOutputTokens:2500\}/);
+});
