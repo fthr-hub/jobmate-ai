@@ -74,6 +74,32 @@ if(u.pathname==="/api/gmail/connect"&&request.method==="POST"){
  const params=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:gmailRedirect(u.origin),response_type:"code",scope:"https://www.googleapis.com/auth/gmail.readonly",access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"});
  return j({success:true,auth_url:"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString()});
 }
+if(u.pathname==="/api/gmail/messages"&&request.method==="GET"){
+ const row=await env.DB.prepare("SELECT email,encrypted_tokens FROM gmail_connections WHERE telegram_id=?").bind(uid).first();
+ if(!row)return j({success:false,error:"Hubungkan Gmail terlebih dahulu."},409);
+ if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.GMAIL_TOKEN_ENCRYPTION_KEY)return j({success:false,error:"Konfigurasi Gmail belum lengkap."},503);
+ try{
+  const tokens=await decryptGmailTokens(row.encrypted_tokens,env.GMAIL_TOKEN_ENCRYPTION_KEY);
+  if(!tokens.access_token||Number(tokens.expires_at)<Date.now()+60000){
+   if(!tokens.refresh_token)return j({success:false,error:"Sesi Gmail kedaluwarsa. Putuskan lalu hubungkan ulang Gmail."},401);
+   const refreshed=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,refresh_token:tokens.refresh_token,grant_type:"refresh_token"})});
+   const next=await refreshed.json();
+   if(!refreshed.ok||!next.access_token)return j({success:false,error:"Gagal memperbarui sesi Gmail. Hubungkan ulang akun lu."},401);
+   tokens.access_token=next.access_token;tokens.expires_at=Date.now()+Number(next.expires_in||3600)*1000;
+   await env.DB.prepare("UPDATE gmail_connections SET encrypted_tokens=?,updated_at=CURRENT_TIMESTAMP WHERE telegram_id=?").bind(await encryptGmailTokens(tokens,env.GMAIL_TOKEN_ENCRYPTION_KEY),uid).run();
+  }
+  const q=String(u.searchParams.get("q")||"newer_than:90d {interview OR application OR lamaran OR recruitment OR recruiter OR job}").slice(0,500);
+  const listRes=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?"+new URLSearchParams({q,maxResults:"15"}),{headers:{Authorization:"Bearer "+tokens.access_token}});
+  const list=await listRes.json();
+  if(!listRes.ok)return j({success:false,error:"Gmail gagal mencari email. Coba hubungkan ulang akun."},502);
+  const messages=await Promise.all((list.messages||[]).slice(0,15).map(async item=>{
+   const response=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/"+encodeURIComponent(item.id)+"?"+new URLSearchParams({format:"metadata",metadataHeaders:"Subject",metadataHeaders:"From",metadataHeaders:"Date"}),{headers:{Authorization:"Bearer "+tokens.access_token}});
+   if(!response.ok)return null;const message=await response.json(),headers=message.payload?.headers||[],get=name=>headers.find(x=>x.name?.toLowerCase()===name.toLowerCase())?.value||"";
+   return {id:message.id,thread_id:message.threadId,subject:get("Subject")||"(Tanpa subjek)",from:get("From"),date:get("Date"),snippet:String(message.snippet||"").slice(0,500),internal_date:message.internalDate||null};
+  }));
+  return j({success:true,email:row.email,count:messages.filter(Boolean).length,messages:messages.filter(Boolean)});
+ }catch{return j({success:false,error:"Terjadi kesalahan saat membaca email Gmail."},500);}
+}
 if(u.pathname==="/api/gmail/status"&&request.method==="GET"){
  const row=await env.DB.prepare("SELECT email,updated_at FROM gmail_connections WHERE telegram_id=?").bind(uid).first();
  return j({success:true,connected:!!row,email:row?.email||null,connected_at:row?.updated_at||null});
