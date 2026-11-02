@@ -55,7 +55,7 @@ The private API now enforces daily limits per verified Telegram account (UTC day
 - `GET /api/ai-usage` (and the existing `GET /api/image-usage` compatibility route) reports both counters.
 - The old IP-based `image_usage` table is no longer used by the updated Worker; it is left untouched for safe rollback.
 
-Before deploying this branch, apply the additive migration to the intended D1 database:
+Before deploying this branch, apply both additive migrations in order to the intended D1 database. Migration `0002_chat_usage.sql` adds a separate daily chat counter; it does not reset or delete existing usage rows:
 
 ```sh
 npx wrangler d1 migrations apply jobmate-ai-db --remote
