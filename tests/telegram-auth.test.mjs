@@ -286,3 +286,75 @@ test("does not send unsupported sampling parameters to Gemini 3.5 Flash-Lite", a
   assert.match(source, /generationConfig:\{maxOutputTokens:1800\}/);
   assert.match(source, /generationConfig:\{maxOutputTokens:2500\}/);
 });
+
+
+test("scopes application update and delete operations to the authenticated owner", async () => {
+  for (const method of ["PUT", "DELETE"]) {
+    const initData = await signedInitData();
+    const statements = [];
+    const env = mockEnv();
+    env.DB = {
+      prepare(sql) {
+        return {
+          bind(...values) {
+            return {
+              run: async () => {
+                statements.push({ sql, values });
+                return { success: true, meta: { changes: 0 } };
+              },
+              first: async () => null,
+              all: async () => ({ results: [] })
+            };
+          }
+        };
+      }
+    };
+    const response = await worker.fetch(
+      new Request("https://jobmate.test/api/applications/not-owned", {
+        method,
+        headers: {
+          Authorization: "tma " + initData,
+          "Content-Type": "application/json"
+        },
+        ...(method === "PUT" ? { body: JSON.stringify({ company_name: "Other", position: "Role" }) } : {})
+      }),
+      env
+    );
+    assert.equal(response.status, 404);
+    const mutation = statements.find(x => x.sql.startsWith(method === "PUT" ? "UPDATE applications" : "DELETE FROM applications"));
+    assert.ok(mutation, "application mutation should execute");
+    assert.match(mutation.sql, /WHERE id=\? AND telegram_id=\?/);
+    assert.equal(mutation.values.at(-1), OWNER_ID);
+  }
+});
+
+test("scopes document downloads to the authenticated owner", async () => {
+  const initData = await signedInitData();
+  let statement;
+  const env = mockEnv();
+  env.DB = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            run: async () => ({ success: true, meta: { changes: 0 } }),
+            first: async () => {
+              statement = { sql, values };
+              return null;
+            },
+            all: async () => ({ results: [] })
+          };
+        }
+      };
+    }
+  };
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/documents/not-owned", {
+      headers: { Authorization: "tma " + initData }
+    }),
+    env
+  );
+  assert.equal(response.status, 404);
+  assert.match(statement.sql, /d\.telegram_id=\?/);
+  assert.deepEqual(statement.values, ["not-owned", OWNER_ID]);
+});
