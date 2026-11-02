@@ -19,7 +19,7 @@ async function signedInitData(userId = OWNER_ID, authDate = Math.floor(Date.now(
     query_id: "AAE-test-query",
     user: JSON.stringify({ id: Number(userId), first_name: "Test User" })
   });
-  const entries = [...params.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const entries = [...params.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
   const checkString = entries.map(([key, value]) => key + "=" + value).join("\n");
   const enc = new TextEncoder();
   const importHmac = key => crypto.subtle.importKey(
@@ -161,4 +161,9 @@ test("keeps the Worker-embedded dashboard identical to the public dashboard", as
   assert.ok(start >= marker.length && end > start, "APP_HTML literal should be present");
   const embeddedHtml = JSON.parse(source.slice(start, end));
   assert.equal(embeddedHtml, publicHtml);
+});
+
+
+test("uses deterministic code-point ordering for Telegram signature fields", () => {
+  assert.match(source, /sort\(\(\[a\],\[b\]\)=>a<b\?-1:a>b\?1:0\)/);
 });
