@@ -145,3 +145,20 @@ test("keeps the frontend and backend image upload limits aligned at 6 MiB", asyn
   assert.match(html, /f\.size\s*>\s*6\s*\*\s*1024\s*\*\s*1024/);
   assert.match(source, /maxImageBase64Length\s*=\s*4\s*\*\s*Math\.ceil\(\(6\s*\*\s*1024\s*\*\s*1024\)\s*\/\s*3\)/);
 });
+
+
+test("keeps chat usage separate from vacancy text analysis quota", async () => {
+  assert.match(source, /consumeAiQuota\("chat"\)/);
+  assert.match(source, /chat_count/);
+  assert.match(source, /consumeAiQuota\("text"\)/);
+});
+
+test("keeps the Worker-embedded dashboard identical to the public dashboard", async () => {
+  const publicHtml = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\\nexport default", start);
+  assert.ok(start >= marker.length && end > start, "APP_HTML literal should be present");
+  const embeddedHtml = JSON.parse(source.slice(start, end));
+  assert.equal(embeddedHtml, publicHtml);
+});
