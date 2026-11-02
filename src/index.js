@@ -68,8 +68,8 @@ if(!telegramUser||String(telegramUser.id)!==ownerId){
 const uid=String(telegramUser.id),ensure=()=>env.DB.prepare("INSERT OR IGNORE INTO users(telegram_id,first_name) VALUES(?,?)").bind(uid,String(telegramUser.first_name||"Pengguna").slice(0,120)).run();
 if(u.pathname==="/api/gmail/connect"&&request.method==="POST"){
  if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.GMAIL_TOKEN_ENCRYPTION_KEY)return j({success:false,error:"Integrasi Gmail belum dikonfigurasi di Cloudflare."},503);
- const state=crypto.randomUUID(),verifier=b64bytes(crypto.getRandomValues(new Uint8Array(48))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"");
- const challenge=b64bytes(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier))).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"");
+ const state=crypto.randomUUID(),verifier=b64bytes(crypto.getRandomValues(new Uint8Array(48))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+ const challenge=b64bytes(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
  await env.DB.prepare("INSERT INTO gmail_oauth_states(state,telegram_id,code_verifier,expires_at) VALUES(?,?,?,?)").bind(state,uid,verifier,Date.now()+10*60*1000).run();
  const params=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:gmailRedirect(u.origin),response_type:"code",scope:"https://www.googleapis.com/auth/gmail.readonly",access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"});
  return j({success:true,auth_url:"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString()});
