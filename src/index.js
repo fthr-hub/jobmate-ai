@@ -9,7 +9,7 @@ const verifyTelegramInitData=async(raw,botToken)=>{
   const params=new URLSearchParams(raw),hash=params.get("hash");
   if(!hash||params.getAll("hash").length!==1)return null;
   const entries=[...params.entries()].filter(([k])=>k!=="hash").sort(([a],[b])=>a.localeCompare(b));
-  const checkString=entries.map(([k,v])=>k+"="+v).join("\\n");
+  const checkString=entries.map(([k,v])=>k+"="+v).join("\n");
   const enc=new TextEncoder();
   const importHmac=key=>crypto.subtle.importKey("raw",key,{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   const secretKey=await importHmac(enc.encode("WebAppData"));
