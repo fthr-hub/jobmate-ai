@@ -47,12 +47,12 @@ A read-only D1 inspection confirmed there are currently zero rows under the lega
 
 ## AI usage limits
 
-The private API now enforces daily limits per verified Telegram account (UTC day):
+The private API now enforces daily limits per verified Telegram account (Asia/Jakarta calendar day (WIB)):
 
 - Text vacancy analysis: 20 requests/day.
 - Image vacancy analysis: 10 requests/day.
 - Both counters are incremented atomically in D1 to avoid parallel requests bypassing the limit.
-- `GET /api/ai-usage` (and the existing `GET /api/image-usage` compatibility route) reports both counters.
+- `GET /api/ai-usage` (and the existing `GET /api/image-usage` compatibility route) reports all counters and the next reset boundary is 00:00 WIB.
 - The old IP-based `image_usage` table is no longer used by the updated Worker; it is left untouched for safe rollback.
 
 Before deploying this branch, apply both additive migrations in order to the intended D1 database. Migration `0002_chat_usage.sql` adds a separate daily chat counter; it does not reset or delete existing usage rows:
