@@ -426,3 +426,80 @@ test("restores chat quota when Gemini returns an upstream error", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("uses the saved candidate profile in both text and image vacancy analysis", async () => {
+  const env = mockEnv();
+  env.GEMINI_API_KEY = "test-gemini-key";
+  const profile = {
+    full_name: "Test Candidate",
+    skills: "warehouse, picking, packing, quality control",
+    experience: "Warehouse Operator",
+    education: "SMK"
+  };
+  env.DB = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            run: async () => ({ success: true, meta: { changes: 1 } }),
+            first: async () => {
+              if (sql.includes("SELECT full_name,skills,experience,education FROM profiles")) return profile;
+              if (sql.startsWith("INSERT INTO ai_usage")) {
+                const column = sql.includes("image_count") ? "image_count" : "text_count";
+                return { [column]: 1 };
+              }
+              return null;
+            },
+            all: async () => ({ results: [] })
+          };
+        }
+      };
+    }
+  };
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (_url, options) => {
+    requests.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "Analisis selesai." }] } }]
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const auth = "tma " + await signedInitData();
+    const textResponse = await worker.fetch(
+      new Request("https://jobmate.test/api/analyze", {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ vacancy: "Dicari operator gudang dengan pengalaman picking dan packing." })
+      }),
+      env
+    );
+    assert.equal(textResponse.status, 200);
+    const textPrompt = requests[0].contents[0].parts[0].text;
+    assert.match(textPrompt, /Test Candidate/);
+    assert.match(textPrompt, /Warehouse Operator/);
+    assert.match(textPrompt, /DESKRIPSI LOWONGAN/);
+
+    const imageResponse = await worker.fetch(
+      new Request("https://jobmate.test/api/analyze-image", {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({ image: "aGVsbG8=", mimeType: "image/png" })
+      }),
+      env
+    );
+    assert.equal(imageResponse.status, 200);
+    const imagePrompt = requests[1].contents[0].parts[0].text;
+    assert.match(imagePrompt, /Test Candidate/);
+    assert.match(imagePrompt, /Warehouse Operator/);
+    assert.equal(requests[1].contents[0].parts[1].inline_data.mime_type, "image/png");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("resets daily AI quota using Indonesia western time", () => {
+  assert.match(source, /Date\.now\(\)\+7\*60\*60\*1000/);
+  assert.match(source, /resets:"00:00 WIB"/);
+});
