@@ -62,3 +62,27 @@ npx wrangler d1 migrations apply jobmate-ai-db --remote
 ```
 
 The migration creates only the new `ai_usage` table and does not modify or delete existing user, profile, application, or document records. Do not run it against production until deployment is explicitly approved and the target database is confirmed.
+
+
+## Gmail connection (Google OAuth)
+
+The Mini App Gmail tab uses Google's OAuth 2.0 authorization-code flow with PKCE. It requests the read-only Gmail scope only; JobMate does not send, delete, or modify messages.
+
+Before enabling it on staging:
+
+1. In Google Cloud Console, create/select a project and enable the Gmail API.
+2. Configure the OAuth consent screen. While the app is in Testing, add the Google account that will connect as a test user.
+3. Create an OAuth Client ID of type **Web application**.
+4. Add this exact Authorized redirect URI:
+   `https://jobmate-ai-staging.ahmadfathirasydiq.workers.dev/oauth/gmail/callback`
+5. Add the following Worker secrets/variables to **jobmate-ai-staging** only:
+   - `GOOGLE_CLIENT_ID` — OAuth client ID (non-secret variable is acceptable).
+   - `GOOGLE_CLIENT_SECRET` — OAuth client secret (Secret).
+   - `GMAIL_TOKEN_ENCRYPTION_KEY` — generate a random secret of at least 32 bytes; used to derive an AES-GCM key for encrypting OAuth tokens at rest.
+6. Apply additive migration `0003_gmail_oauth.sql` to the staging D1 database before deploying the Gmail OAuth build.
+
+The callback uses one-time, ten-minute OAuth state bound to the verified Telegram owner, PKCE S256, and HTTPS. Access/refresh tokens are encrypted with AES-GCM before storage. The database stores only ciphertext. Disconnecting removes the stored connection. Never put the Google client secret or encryption key in frontend code, source control, Telegram, or chat.
+
+Google may require OAuth app verification before non-test users can authorize Gmail scopes. Keep the consent screen in Testing for the private owner-only app until verification/public distribution is actually needed. Do not request broader Gmail scopes without a clear feature requirement.
+
+The Gmail integration is not active until the Google OAuth credentials and the staging D1 migration are configured. Production credentials, Worker, and database must remain untouched until staging validation is complete.
