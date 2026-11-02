@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jobmate-ai-staging",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-31",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jobmate-ai-staging",
+      "database_id": "02883574-f290-4323-bcdb-63201f93dfa0"
+    }
+  ]
+}
