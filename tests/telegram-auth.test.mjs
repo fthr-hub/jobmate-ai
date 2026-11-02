@@ -157,7 +157,7 @@ test("keeps the Worker-embedded dashboard identical to the public dashboard", as
   const publicHtml = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
   const marker = "const APP_HTML=";
   const start = source.indexOf(marker) + marker.length;
-  const end = source.indexOf(";\\nexport default", start);
+  const end = source.indexOf(";\nexport default", start);
   assert.ok(start >= marker.length && end > start, "APP_HTML literal should be present");
   const embeddedHtml = JSON.parse(source.slice(start, end));
   assert.equal(embeddedHtml, publicHtml);
