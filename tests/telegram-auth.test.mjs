@@ -103,3 +103,38 @@ test("rejects expired Telegram initData", async () => {
   );
   assert.equal(response.status, 401);
 });
+
+
+test("does not delete document contents unless the document belongs to the owner", async () => {
+  const initData = await signedInitData();
+  const statements = [];
+  const env = mockEnv();
+  env.DB = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            run: async () => {
+              statements.push({ sql, values });
+              return { success: true, meta: { changes: sql.startsWith("DELETE FROM documents") ? 0 : 0 } };
+            },
+            first: async () => null,
+            all: async () => ({ results: [] })
+          };
+        }
+      };
+    }
+  };
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/documents/not-owned", {
+      method: "DELETE",
+      headers: { Authorization: "tma " + initData }
+    }),
+    env
+  );
+  assert.equal(response.status, 404);
+  const contentDelete = statements.find(x => x.sql.startsWith("DELETE FROM document_contents"));
+  assert.ok(contentDelete, "document content deletion statement should execute");
+  assert.match(contentDelete.sql, /EXISTS\s*\(SELECT 1 FROM documents/);
+  assert.deepEqual(contentDelete.values, ["not-owned", "not-owned", OWNER_ID]);
+});
