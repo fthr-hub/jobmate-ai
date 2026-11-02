@@ -44,3 +44,21 @@ Do not deploy until the secret is configured and the checks above pass. This bra
 The current production Worker version's bindings include `GEMINI_API_KEY`, but not `TELEGRAM_BOT_TOKEN`. The Telegram secret must therefore be added before the authenticated build can be deployed. Adding a Worker secret publishes a new version, so wait for explicit deployment approval.
 
 A read-only D1 inspection confirmed there are currently zero rows under the legacy `telegram_id='personal'` identity and zero rows under the configured owner identity in `users`, `profiles`, `applications`, and `documents`. No legacy-row migration is currently required. No database writes were performed during this inspection.
+
+## AI usage limits
+
+The private API now enforces daily limits per verified Telegram account (UTC day):
+
+- Text vacancy analysis: 20 requests/day.
+- Image vacancy analysis: 10 requests/day.
+- Both counters are incremented atomically in D1 to avoid parallel requests bypassing the limit.
+- `GET /api/ai-usage` (and the existing `GET /api/image-usage` compatibility route) reports both counters.
+- The old IP-based `image_usage` table is no longer used by the updated Worker; it is left untouched for safe rollback.
+
+Before deploying this branch, apply the additive migration to the intended D1 database:
+
+```sh
+npx wrangler d1 migrations apply jobmate-ai-db --remote
+```
+
+The migration creates only the new `ai_usage` table and does not modify or delete existing user, profile, application, or document records. Do not run it against production until deployment is explicitly approved and the target database is confirmed.
