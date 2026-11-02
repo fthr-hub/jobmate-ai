@@ -14,7 +14,7 @@ npx wrangler secret put TELEGRAM_BOT_TOKEN
 
 **Important:** changing a Worker secret through Wrangler publishes a new Worker version. Do not run this command until the code has been reviewed and a deployment is explicitly approved.
 
-The owner check currently uses `OWNER_TELEGRAM_ID` if configured, otherwise the private owner ID already set in the Worker source. Do not change this value unless the intended owner account changes.
+The owner check requires `OWNER_TELEGRAM_ID` as a Worker environment variable. Set it to the numeric Telegram ID of the one authorized account in Cloudflare Worker settings. The Worker fails closed if it is missing. Do not commit this identifier to source control.
 
 ## Authentication behavior
 
@@ -43,4 +43,4 @@ Do not deploy until the secret is configured and the checks above pass. This bra
 
 The current production Worker version's bindings include `GEMINI_API_KEY`, but not `TELEGRAM_BOT_TOKEN`. The Telegram secret must therefore be added before the authenticated build can be deployed. Adding a Worker secret publishes a new version, so wait for explicit deployment approval.
 
-A read-only D1 inspection confirmed there are currently zero rows under the legacy `telegram_id='personal'` identity and zero rows under owner ID `8007247617` in `users`, `profiles`, `applications`, and `documents`. No legacy-row migration is currently required. No database writes were performed during this inspection.
+A read-only D1 inspection confirmed there are currently zero rows under the legacy `telegram_id='personal'` identity and zero rows under the configured owner identity in `users`, `profiles`, `applications`, and `documents`. No legacy-row migration is currently required. No database writes were performed during this inspection.
