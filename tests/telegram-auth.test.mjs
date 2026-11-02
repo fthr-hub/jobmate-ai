@@ -566,3 +566,61 @@ test("rejects CV files whose extension does not match their MIME type", async ()
   assert.equal(response.status, 415);
   assert.equal(batches, 0);
 });
+
+
+test("starts Gmail OAuth with owner-bound state and PKCE", async () => {
+  const env = mockEnv();
+  env.GOOGLE_CLIENT_ID = "google-client-id";
+  env.GOOGLE_CLIENT_SECRET = "google-client-secret";
+  env.GMAIL_TOKEN_ENCRYPTION_KEY = "test-encryption-key";
+  const writes = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        run: async () => { writes.push({ sql, values }); return { success: true, meta: { changes: 1 } }; },
+        first: async () => null,
+        all: async () => ({ results: [] })
+      }; } };
+    }
+  };
+  const response = await worker.fetch(new Request("https://jobmate.test/api/gmail/connect", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData() }
+  }), env);
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  const authUrl = new URL(data.auth_url);
+  assert.equal(authUrl.origin, "https://accounts.google.com");
+  assert.equal(authUrl.searchParams.get("client_id"), "google-client-id");
+  assert.equal(authUrl.searchParams.get("code_challenge_method"), "S256");
+  assert.equal(authUrl.searchParams.get("scope"), "https://www.googleapis.com/auth/gmail.readonly");
+  assert.ok(authUrl.searchParams.get("state"));
+  assert.ok(authUrl.searchParams.get("code_challenge"));
+  assert.equal(writes.length, 1);
+  assert.match(writes[0].sql, /INSERT INTO gmail_oauth_states/);
+  assert.equal(writes[0].values[1], "123456789");
+});
+
+test("does not start Gmail OAuth when Google secrets are missing", async () => {
+  const env = mockEnv();
+  const response = await worker.fetch(new Request("https://jobmate.test/api/gmail/connect", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData() }
+  }), env);
+  assert.equal(response.status, 503);
+  const data = await response.json();
+  assert.match(data.error, /belum dikonfigurasi/i);
+});
+
+test("Gmail OAuth callback fails closed for an unknown state", async () => {
+  const env = mockEnv();
+  env.DB = {
+    prepare() { return { bind() { return { first: async () => null, run: async () => ({ success: true }) }; } }; }
+  };
+  env.GOOGLE_CLIENT_ID = "google-client-id";
+  env.GOOGLE_CLIENT_SECRET = "google-client-secret";
+  env.GMAIL_TOKEN_ENCRYPTION_KEY = "test-encryption-key";
+  const response = await worker.fetch(new Request("https://jobmate.test/oauth/gmail/callback?code=sample&state=unknown"), env);
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /Sesi kedaluwarsa/);
+});
