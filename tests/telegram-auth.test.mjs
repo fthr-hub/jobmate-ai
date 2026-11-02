@@ -182,3 +182,66 @@ test("returns the verified Telegram identity from the authenticated session", as
   assert.equal(body.user.first_name, "Test User");
   assert.equal(body.user.username, null);
 });
+
+
+test("rejects requests without a Telegram authorization header", async () => {
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/profile"),
+    mockEnv()
+  );
+  assert.equal(response.status, 401);
+});
+
+test("fails closed when the Telegram bot token is not configured", async () => {
+  const initData = await signedInitData();
+  const env = mockEnv();
+  delete env.TELEGRAM_BOT_TOKEN;
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/profile", {
+      headers: { Authorization: "tma " + initData }
+    }),
+    env
+  );
+  assert.equal(response.status, 401);
+});
+
+test("rejects Telegram initData signed more than 30 seconds in the future", async () => {
+  const initData = await signedInitData(OWNER_ID, Math.floor(Date.now() / 1000) + 31);
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/profile", {
+      headers: { Authorization: "tma " + initData }
+    }),
+    mockEnv()
+  );
+  assert.equal(response.status, 401);
+});
+
+test("rejects duplicate Telegram hash parameters", async () => {
+  const initData = await signedInitData();
+  const hash = new URLSearchParams(initData).get("hash");
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/profile", {
+      headers: { Authorization: "tma " + initData + "&hash=" + hash }
+    }),
+    mockEnv()
+  );
+  assert.equal(response.status, 401);
+});
+
+test("keeps the public health endpoint available without Telegram authentication", async () => {
+  const response = await worker.fetch(
+    new Request("https://jobmate.test/api/health"),
+    mockEnv()
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.status, "online");
+});
+
+test("includes the additive chat quota migration", async () => {
+  const migration = await readFile(
+    new URL("../migrations/0002_chat_usage.sql", import.meta.url),
+    "utf8"
+  );
+  assert.match(migration, /ALTER TABLE ai_usage ADD COLUMN chat_count INTEGER NOT NULL DEFAULT 0/);
+});
