@@ -503,3 +503,66 @@ test("resets daily AI quota using Indonesia western time", () => {
   assert.match(source, /Date\.now\(\)\+7\*60\*60\*1000/);
   assert.match(source, /resets:"00:00 WIB"/);
 });
+
+
+test("rejects invalid profile email before writing profile data", async () => {
+  const env = mockEnv();
+  const writes = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        run: async () => { writes.push({ sql, values }); return { success: true, meta: { changes: 1 } }; },
+        first: async () => null,
+        all: async () => ({ results: [] })
+      }; } };
+    }
+  };
+  const response = await worker.fetch(new Request("https://jobmate.test/api/profile", {
+    method: "PUT",
+    headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+    body: JSON.stringify({ full_name: "Test", email: "not-an-email" })
+  }), env);
+  assert.equal(response.status, 400);
+  assert.equal(writes.some(x => x.sql.startsWith("INSERT INTO profiles")), false);
+});
+
+test("rejects application creation when company or position is missing", async () => {
+  const env = mockEnv();
+  const writes = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        run: async () => { writes.push({ sql, values }); return { success: true, meta: { changes: 1 } }; },
+        first: async () => null,
+        all: async () => ({ results: [] })
+      }; } };
+    }
+  };
+  const response = await worker.fetch(new Request("https://jobmate.test/api/applications", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+    body: JSON.stringify({ company_name: " ", position: "" })
+  }), env);
+  assert.equal(response.status, 400);
+  assert.equal(writes.some(x => x.sql.startsWith("INSERT INTO applications")), false);
+});
+
+test("rejects CV files whose extension does not match their MIME type", async () => {
+  const env = mockEnv();
+  let batches = 0;
+  env.DB = {
+    prepare(sql) {
+      return { bind() { return { run: async () => ({ success: true, meta: { changes: 1 } }), sql }; } };
+    },
+    batch: async () => { batches++; return []; }
+  };
+  const form = new FormData();
+  form.append("file", new File(["not a pdf"], "resume.pdf", { type: "application/msword" }));
+  const response = await worker.fetch(new Request("https://jobmate.test/api/documents", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData() },
+    body: form
+  }), env);
+  assert.equal(response.status, 415);
+  assert.equal(batches, 0);
+});
