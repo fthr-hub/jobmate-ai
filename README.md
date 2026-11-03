@@ -43,7 +43,7 @@ A failed upstream AI request should release its reserved quota. Quotas are not a
 - Email helper is manual-only. It does not connect to Gmail, read inboxes, or send messages.
 - Google OAuth/Gmail sync is intentionally not part of the daily workflow and requires separate configuration before it can be activated.
 
-## Development checks
+## Operational health check\n\nThe public `GET /api/health` endpoint reports database connectivity and whether the Gemini and Telegram authentication bindings are configured. It returns `200` when those dependencies are ready and `503` with `status: degraded` when a required dependency is missing. This checks binding/configuration presence, not an actual Gemini generation request.\n\n## Development checks
 
 The GitHub Actions workflow checks Worker syntax, Telegram authentication and route tests, and frontend inline-script syntax:
 
