@@ -801,3 +801,18 @@ test("includes integrity-first Auto Tailor CV UI and authenticated API", async (
     assert.ok(source.includes(id), "missing Auto Tailor CV UI element: " + id);
   }
 });
+
+
+test("Job Match handoff button keeps its delegated click target and HTML copies stay synchronized", async () => {
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\nexport default", start);
+  const embeddedHtml = JSON.parse(source.slice(start, end));
+  const publicHtml = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.equal(publicHtml, embeddedHtml);
+  assert.match(embeddedHtml, /<button type='button' class='secondary tailor-match-button'>Sesuaikan CV untuk lowongan ini<\\/button>/);
+  assert.doesNotMatch(embeddedHtml, /class='[^']*'\\s+class=/);
+  assert.match(source, /lastMatchResults\\[displayIndex\\]/);
+  assert.match(source, /lastMatchedJobs\\[jobIndex\\]/);
+  assert.match(source, /querySelectorAll\\(["']\\.card["']\\)/);
+});
