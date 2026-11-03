@@ -815,3 +815,18 @@ test("Job Match handoff button keeps its delegated click target and HTML copies 
   assert.ok(source.includes("lastMatchResults[displayIndex]"));
   assert.ok(source.includes("lastMatchedJobs[jobIndex]"));
 });
+
+
+test("renders vacancy analysis Markdown as safe structured HTML", async () => {
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\\nexport default", start);
+  const html = JSON.parse(source.slice(start, end));
+  assert.match(html, /function renderAssistantMessage\\(el,text\\)/);
+  assert.match(html, /line\\.match\\(\\/^\\s\\*\\(#{1,3}\\)/);
+  assert.match(html, /renderAssistantMessage\\(\\$\\(\\"textResult\\"\\)/);
+  assert.match(html, /renderAssistantMessage\\(\\$\\(\\"imageResult\\"\\)/);
+  assert.match(html, /\\.result\\.markdown-result h3/);
+  assert.match(html, /appendInlineMarkdown/);
+  assert.match(html, /node\\.textContent=/);
+});
