@@ -37,11 +37,11 @@ The owner check requires `OWNER_TELEGRAM_ID` as a Worker environment variable. S
 7. Confirm analysis endpoints reject unauthenticated requests.
 8. Verify existing owner data remains accessible before any production rollout.
 
-Do not deploy until the secret is configured and the checks above pass. This branch has not been deployed.
+The private build is currently deployed to the staging and production Workers. The production and staging binding lists were verified to contain the Telegram bot token and Gemini API key as secret bindings, plus the owner ID and the matching D1 database. Secret values were not read or exposed. Keep the checklist above for future rotations or deployments; verify the actual Telegram Mini App before declaring an end-to-end release complete.
 
 ## Current production pre-check (read-only)
 
-The current production Worker version's bindings include `GEMINI_API_KEY`, but not `TELEGRAM_BOT_TOKEN`. The Telegram secret must therefore be added before the authenticated build can be deployed. Adding a Worker secret publishes a new version, so wait for explicit deployment approval.
+Current deployment snapshot (2026-11-03): production Worker `jobmate-ai` version 33 and staging Worker `jobmate-ai-staging` version 29 are each deployed at 100% traffic. Both binding lists include `DB`, `GEMINI_API_KEY` (secret), `TELEGRAM_BOT_TOKEN` (secret), and `OWNER_TELEGRAM_ID`. The production D1 schema includes the daily `ai_usage` counters and Gmail OAuth tables; staging has the same tables. No secret values are read by the audit. Production D1 currently has no user/profile/application/document rows, so no user data was changed by this deployment.
 
 A read-only D1 inspection confirmed there are currently zero rows under the legacy `telegram_id='personal'` identity and zero rows under the configured owner identity in `users`, `profiles`, `applications`, and `documents`. No legacy-row migration is currently required. No database writes were performed during this inspection.
 
