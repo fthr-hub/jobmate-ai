@@ -694,6 +694,7 @@ test("Gmail callback encrypts tokens before storing the connection", async () =>
 
 test("Job Match ranks every supplied vacancy and returns bounded structured results", async () => {
   const env = mockEnv();
+  env.GEMINI_API_KEY = "test-gemini-key";
   const statements = [];
   env.DB = {
     prepare(sql) {
@@ -742,6 +743,7 @@ test("Job Match ranks every supplied vacancy and returns bounded structured resu
 
 test("Job Match rejects too few vacancies before reserving quota or calling Gemini", async () => {
   const env = mockEnv();
+  env.GEMINI_API_KEY = "test-gemini-key";
   let dbCalls = 0;
   env.DB = { prepare() { dbCalls++; throw new Error("Quota must not be touched"); } };
   const originalFetch = globalThis.fetch;
