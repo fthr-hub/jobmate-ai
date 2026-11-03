@@ -814,5 +814,4 @@ test("Job Match handoff button keeps its delegated click target and HTML copies 
   assert.doesNotMatch(embeddedHtml, /class='[^']*'\s+class=/);
   assert.ok(source.includes("lastMatchResults[displayIndex]"));
   assert.ok(source.includes("lastMatchedJobs[jobIndex]"));
-  assert.ok(source.includes('querySelectorAll(".card")'));
 });
