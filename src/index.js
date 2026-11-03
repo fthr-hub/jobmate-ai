@@ -4,7 +4,7 @@ const u=new URL(request.url);
 const j=(d,s=200,h={})=>Response.json(d,{status:s,headers:h});
 if(request.method==="OPTIONS")return new Response(null,{status:204});
 if(u.pathname==="/api/health"){
- let database=false;try{const row=await env.DB?.prepare("SELECT 1 AS ok").first();database=Number(row?.ok)===1}catch{}
+ let database=false;try{const row=await env.DB?.prepare("SELECT 1 AS ok").bind().first();database=Number(row?.ok)===1}catch{}
  const checks={database:database?"ok":"unavailable",gemini:env.GEMINI_API_KEY?"configured":"missing",telegram_auth:env.TELEGRAM_BOT_TOKEN&&env.OWNER_TELEGRAM_ID?"configured":"missing"};
  const ready=database&&checks.gemini==="configured"&&checks.telegram_auth==="configured";
  return j({success:ready,app:"JobMate AI",status:ready?"online":"degraded",model:"gemini-3.5-flash-lite",checks},ready?200:503);
