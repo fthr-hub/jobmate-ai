@@ -810,9 +810,9 @@ test("Job Match handoff button keeps its delegated click target and HTML copies 
   const embeddedHtml = JSON.parse(source.slice(start, end));
   const publicHtml = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
   assert.equal(publicHtml, embeddedHtml);
-  assert.match(embeddedHtml, /<button type='button' class='secondary tailor-match-button'>Sesuaikan CV untuk lowongan ini<\\/button>/);
-  assert.doesNotMatch(embeddedHtml, /class='[^']*'\\s+class=/);
-  assert.match(source, /lastMatchResults\\[displayIndex\\]/);
-  assert.match(source, /lastMatchedJobs\\[jobIndex\\]/);
-  assert.match(source, /querySelectorAll\\(["']\\.card["']\\)/);
+  assert.ok(embeddedHtml.includes("<button type='button' class='secondary tailor-match-button'>Sesuaikan CV untuk lowongan ini</button>"));
+  assert.doesNotMatch(embeddedHtml, /class='[^']*'\s+class=/);
+  assert.ok(source.includes("lastMatchResults[displayIndex]"));
+  assert.ok(source.includes("lastMatchedJobs[jobIndex]"));
+  assert.ok(source.includes('querySelectorAll(".card")'));
 });
