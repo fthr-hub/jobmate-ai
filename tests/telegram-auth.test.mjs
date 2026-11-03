@@ -820,7 +820,7 @@ test("Job Match handoff button keeps its delegated click target and HTML copies 
 test("renders vacancy analysis Markdown as safe structured HTML", async () => {
   const marker = "const APP_HTML=";
   const start = source.indexOf(marker) + marker.length;
-  const end = source.indexOf("export default", start) - 1;
+  const end = source.indexOf("export default", start) - 2;
   const html = JSON.parse(source.slice(start, end));
   assert.ok(html.includes("function renderAssistantMessage(el,text)"));
   assert.ok(html.includes("heading=line.match"));
