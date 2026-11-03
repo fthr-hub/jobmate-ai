@@ -44,9 +44,11 @@ function mockEnv() {
           bind() {
             return {
               run: async () => ({ success: true, meta: { changes: 1 } }),
-              first: async () => sql.includes("SELECT * FROM profiles")
-                ? { full_name: "Test Owner" }
-                : null,
+              first: async () => sql.includes("SELECT 1 AS ok")
+                ? { ok: 1 }
+                : sql.includes("SELECT * FROM profiles")
+                  ? { full_name: "Test Owner" }
+                  : null,
               all: async () => ({ results: [] })
             };
           }
@@ -228,14 +230,27 @@ test("rejects duplicate Telegram hash parameters", async () => {
   assert.equal(response.status, 401);
 });
 
-test("keeps the public health endpoint available without Telegram authentication", async () => {
+test("keeps a dependency-aware health endpoint available without Telegram authentication", async () => {
+  const env = mockEnv();
+  env.GEMINI_API_KEY = "test-gemini-key";
   const response = await worker.fetch(
     new Request("https://jobmate.test/api/health"),
-    mockEnv()
+    env
   );
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.status, "online");
+  assert.deepEqual(body.checks, { database: "ok", gemini: "configured", telegram_auth: "configured" });
+});
+
+test("reports degraded health when a required AI binding is missing", async () => {
+  const env = mockEnv();
+  delete env.GEMINI_API_KEY;
+  const response = await worker.fetch(new Request("https://jobmate.test/api/health"), env);
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.status, "degraded");
+  assert.equal(body.checks.gemini, "missing");
 });
 
 test("includes the additive chat quota migration", async () => {
