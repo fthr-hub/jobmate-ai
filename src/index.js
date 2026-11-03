@@ -3,7 +3,12 @@ export default {async fetch(request,env){
 const u=new URL(request.url);
 const j=(d,s=200,h={})=>Response.json(d,{status:s,headers:h});
 if(request.method==="OPTIONS")return new Response(null,{status:204});
-if(u.pathname==="/api/health")return j({success:true,app:"JobMate AI",status:"online",model:"gemini-3.5-flash-lite"});
+if(u.pathname==="/api/health"){
+ let database=false;try{const row=await env.DB?.prepare("SELECT 1 AS ok").first();database=Number(row?.ok)===1}catch{}
+ const checks={database:database?"ok":"unavailable",gemini:env.GEMINI_API_KEY?"configured":"missing",telegram_auth:env.TELEGRAM_BOT_TOKEN&&env.OWNER_TELEGRAM_ID?"configured":"missing"};
+ const ready=database&&checks.gemini==="configured"&&checks.telegram_auth==="configured";
+ return j({success:ready,app:"JobMate AI",status:ready?"online":"degraded",model:"gemini-3.5-flash-lite",checks},ready?200:503);
+}
 const gmailRedirect=origin=>new URL("/oauth/gmail/callback",origin).toString();
 const b64bytes=a=>btoa(String.fromCharCode(...new Uint8Array(a)));
 const encryptGmailTokens=async(value,keyText)=>{const keyBytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(keyText));const key=await crypto.subtle.importKey("raw",keyBytes,{name:"AES-GCM"},false,["encrypt"]);const iv=crypto.getRandomValues(new Uint8Array(12));const data=new TextEncoder().encode(JSON.stringify(value));const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,data);return b64bytes(iv)+"."+b64bytes(cipher);};
