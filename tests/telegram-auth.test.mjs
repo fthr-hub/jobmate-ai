@@ -690,3 +690,71 @@ test("Gmail callback encrypts tokens before storing the connection", async () =>
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("Job Match ranks every supplied vacancy and returns bounded structured results", async () => {
+  const env = mockEnv();
+  const statements = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        first: async () => { statements.push({ sql, values }); return { text_count: 1 }; },
+        run: async () => { statements.push({ sql, values }); return { success: true, meta: { changes: 1 } }; }
+      }; } };
+    }
+  };
+  const originalFetch = globalThis.fetch;
+  const aiMatches = {
+    matches: [
+      { job_index: 1, company: "Gudang B", position: "Warehouse Operator", score: 92, summary: "Pengalaman gudang relevan.", matching_requirements: ["Picking dan packing"], gaps: ["WMS lanjutan belum disebut"], truthful_actions: ["Tonjolkan pengalaman scanner yang benar-benar dimiliki."] },
+      { job_index: 0, company: "Pabrik A", position: "Operator Produksi", score: 78, summary: "Pengalaman produksi relevan.", matching_requirements: ["QC produk"], gaps: ["Mesin tertentu belum disebut"], truthful_actions: ["Jelaskan pengalaman QC yang benar-benar dilakukan."] }
+    ]
+  };
+  let requestBody;
+  globalThis.fetch = async (url, options) => {
+    assert.match(String(url), /gemini-3\.5-flash-lite:generateContent/);
+    requestBody = JSON.parse(options.body);
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(aiMatches) }] } }] }), {
+      status: 200, headers: { "Content-Type": "application/json" }
+    });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://jobmate.test/api/job-match", {
+      method: "POST",
+      headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+      body: JSON.stringify({ cv_text: "CV kandidat", jobs: ["Pabrik A | Operator Produksi\\nSyarat QC", "Gudang B | Warehouse Operator\\nPicking packing"] })
+    }), env);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.success, true);
+    assert.equal(body.matches.length, 2);
+    assert.equal(body.matches[0].job_index, 1);
+    assert.equal(body.matches[0].score, 92);
+    assert.equal(body.matches[1].job_index, 0);
+    assert.equal(requestBody.generationConfig.responseMimeType, "application/json");
+    assert.equal(requestBody.generationConfig.maxOutputTokens, 2600);
+    assert.equal(Object.hasOwn(requestBody.generationConfig, "temperature"), false);
+    assert.ok(statements.some(x => x.sql.includes("INSERT INTO ai_usage")));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Job Match rejects too few vacancies before reserving quota or calling Gemini", async () => {
+  const env = mockEnv();
+  let dbCalls = 0;
+  env.DB = { prepare() { dbCalls++; throw new Error("Quota must not be touched"); } };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("Gemini must not be called"); };
+  try {
+    const response = await worker.fetch(new Request("https://jobmate.test/api/job-match", {
+      method: "POST",
+      headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+      body: JSON.stringify({ cv_text: "CV kandidat", jobs: ["Hanya satu lowongan"] })
+    }), env);
+    assert.equal(response.status, 400);
+    assert.equal(dbCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
