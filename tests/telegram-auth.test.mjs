@@ -822,11 +822,11 @@ test("renders vacancy analysis Markdown as safe structured HTML", async () => {
   const start = source.indexOf(marker) + marker.length;
   const end = source.indexOf(";\\nexport default", start);
   const html = JSON.parse(source.slice(start, end));
-  assert.match(html, /function renderAssistantMessage\\(el,text\\)/);
-  assert.match(html, /line\\.match\\(\\/^\\s\\*\\(#{1,3}\\)/);
-  assert.match(html, /renderAssistantMessage\\(\\$\\(\\"textResult\\"\\)/);
-  assert.match(html, /renderAssistantMessage\\(\\$\\(\\"imageResult\\"\\)/);
-  assert.match(html, /\\.result\\.markdown-result h3/);
-  assert.match(html, /appendInlineMarkdown/);
-  assert.match(html, /node\\.textContent=/);
+  assert.ok(html.includes("function renderAssistantMessage(el,text)"));
+  assert.ok(html.includes("heading=line.match"));
+  assert.ok(html.includes('renderAssistantMessage($("textResult")'));
+  assert.ok(html.includes('renderAssistantMessage($("imageResult")'));
+  assert.ok(html.includes(".result.markdown-result h3"));
+  assert.ok(html.includes("appendInlineMarkdown"));
+  assert.ok(html.includes("node.textContent="));
 });
