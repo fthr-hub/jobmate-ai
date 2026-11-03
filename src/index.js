@@ -111,8 +111,75 @@ if(u.pathname==="/api/gmail/disconnect"&&request.method==="POST"){
 if(u.pathname==="/api/me"||u.pathname==="/api/profile"){await ensure();const p=await env.DB.prepare("SELECT * FROM profiles WHERE telegram_id=?").bind(uid).first();if(u.pathname==="/api/me")return j({success:true,user:{first_name:String(telegramUser.first_name||"Pengguna"),last_name:String(telegramUser.last_name||""),username:telegramUser.username||null},profile:p||{}});if(request.method==="GET")return j({success:true,profile:p||{full_name:"",email:"",phone:"",address:"",skills:"",experience:"",education:""}});if(!["PUT","POST"].includes(request.method))return j({success:false,error:"Method not allowed."},405);const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data profil tidak valid."},400);const limits={full_name:200,email:200,phone:60,address:500,skills:12000,experience:12000,education:12000},f=Object.keys(limits),v=f.map(k=>String(b[k]??"").trim().slice(0,limits[k]));if(v[1]&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v[1]))return j({success:false,error:"Format email tidak valid."},400);await env.DB.prepare("INSERT INTO profiles(telegram_id,full_name,email,phone,address,skills,experience,education,updated_at) VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(telegram_id) DO UPDATE SET full_name=excluded.full_name,email=excluded.email,phone=excluded.phone,address=excluded.address,skills=excluded.skills,experience=excluded.experience,education=excluded.education,updated_at=CURRENT_TIMESTAMP").bind(uid,...v).run();return j({success:true,profile:await env.DB.prepare("SELECT * FROM profiles WHERE telegram_id=?").bind(uid).first()});}
 if(u.pathname==="/api/applications"){await ensure();if(request.method==="GET"){const {results}=await env.DB.prepare("SELECT * FROM applications WHERE telegram_id=? ORDER BY COALESCE(applied_at,created_at) DESC").bind(uid).all();return j({success:true,applications:results});}if(request.method==="POST"){const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data lamaran tidak valid."},400);const company=String(b.company_name||"").trim(),position=String(b.position||"").trim();if(!company||!position)return j({success:false,error:"Nama perusahaan dan posisi wajib diisi."},400);const id=crypto.randomUUID(),st=["draft","applied","interview","accepted","rejected"].includes(b.status)?b.status:"draft";await env.DB.prepare("INSERT INTO applications(id,telegram_id,company_name,position,job_description,status,notes,applied_at) VALUES(?,?,?,?,?,?,?,?)").bind(id,uid,String(b.company_name||"").slice(0,200),String(b.position||"").slice(0,200),String(b.job_description||"").slice(0,12000),st,String(b.notes||"").slice(0,12000),b.applied_at||null).run();return j({success:true,application:await env.DB.prepare("SELECT * FROM applications WHERE id=?").bind(id).first()},201);}return j({success:false,error:"Method not allowed."},405);}
 let m=u.pathname.match(/^\/api\/applications\/([^/]+)$/);if(m){await ensure();const id=m[1];if(request.method==="PUT"){const b=await request.json();if(!b||typeof b!=="object"||Array.isArray(b))return j({success:false,error:"Data lamaran tidak valid."},400);const company=String(b.company_name||"").trim(),position=String(b.position||"").trim();if(!company||!position)return j({success:false,error:"Nama perusahaan dan posisi wajib diisi."},400);const st=["draft","applied","interview","accepted","rejected"].includes(b.status)?b.status:"draft",r=await env.DB.prepare("UPDATE applications SET company_name=?,position=?,job_description=?,status=?,notes=?,applied_at=? WHERE id=? AND telegram_id=?").bind(company.slice(0,200),position.slice(0,200),String(b.job_description||"").slice(0,12000),st,String(b.notes||"").slice(0,12000),b.applied_at||null,id,uid).run();if(!r.meta?.changes)return j({success:false,error:"Lamaran tidak ditemukan."},404);return j({success:true,application:await env.DB.prepare("SELECT * FROM applications WHERE id=?").bind(id).first()});}if(request.method==="DELETE"){const r=await env.DB.prepare("DELETE FROM applications WHERE id=? AND telegram_id=?").bind(id,uid).run();return r.meta?.changes?j({success:true}):j({success:false,error:"Lamaran tidak ditemukan."},404);}return j({success:false,error:"Method not allowed."},405);}
-if(u.pathname==="/api/documents"){await ensure();if(request.method==="GET"){const {results}=await env.DB.prepare("SELECT id,file_name,file_type,created_at FROM documents WHERE telegram_id=? ORDER BY created_at DESC").bind(uid).all();return j({success:true,documents:results});}if(request.method==="POST"){const f=await request.formData(),file=f.get("file");if(!file||typeof file.arrayBuffer!=="function")return j({success:false,error:"Pilih file CV terlebih dahulu."},400);const type=file.type||"application/octet-stream",ext=String(file.name||"").split(".").pop().toLowerCase(),types={"pdf":"application/pdf","doc":"application/msword","docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"};if(!Object.hasOwn(types,ext)||types[ext]!==type)return j({success:false,error:"Ekstensi dan format file harus cocok: PDF, DOC, atau DOCX."},415);if(file.size>900000)return j({success:false,error:"Ukuran file maksimal 900 KB sementara."},413);const id=crypto.randomUUID(),bytes=new Uint8Array(await file.arrayBuffer());let bin="";for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));const name=String(file.name||"CV").replace(/[\\/\\0]/g,"_").slice(0,180);await env.DB.batch([env.DB.prepare("INSERT INTO documents(id,telegram_id,file_name,file_type,storage_key) VALUES(?,?,?,?,?)").bind(id,uid,name,type,id),env.DB.prepare("INSERT INTO document_contents(document_id,content_base64,content_type) VALUES(?,?,?)").bind(id,btoa(bin),type)]);return j({success:true,document:{id,file_name:name,file_type:type}},201);}return j({success:false,error:"Method not allowed."},405);}
-m=u.pathname.match(/^\/api\/documents\/([^/]+)$/);if(m){await ensure();const id=m[1];if(request.method==="DELETE"){await env.DB.prepare("DELETE FROM document_contents WHERE document_id=? AND EXISTS (SELECT 1 FROM documents WHERE documents.id=? AND documents.telegram_id=?)").bind(id,id,uid).run();const r=await env.DB.prepare("DELETE FROM documents WHERE id=? AND telegram_id=?").bind(id,uid).run();return r.meta?.changes?j({success:true}):j({success:false,error:"Dokumen tidak ditemukan."},404);}if(request.method==="GET"){const r=await env.DB.prepare("SELECT d.file_name,c.content_base64,c.content_type FROM documents d JOIN document_contents c ON c.document_id=d.id WHERE d.id=? AND d.telegram_id=?").bind(id,uid).first();if(!r)return j({success:false,error:"Dokumen tidak ditemukan."},404);const b=atob(r.content_base64),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Response(a,{headers:{"Content-Type":r.content_type,"Content-Disposition":'attachment; filename="'+r.file_name.replace(/["\\r\\n]/g,"_")+'"',"Cache-Control":"no-store"}});}return j({success:false,error:"Method not allowed."},405);}
+if(u.pathname==="/api/documents"){
+ await ensure();
+ if(request.method==="GET"){
+  const {results}=await env.DB.prepare("SELECT id,file_name,file_type,created_at FROM documents WHERE telegram_id=? ORDER BY created_at DESC").bind(uid).all();
+  return j({success:true,documents:results});
+ }
+ if(request.method==="POST"){
+  const id=crypto.randomUUID();
+  if((request.headers.get("Content-Type")||"").includes("application/json")){
+   const b=await request.json(),content=String(b.content||"");
+   if(!content.trim())return j({success:false,error:"Isi dokumen tidak boleh kosong."},400);
+   if(content.length>40000)return j({success:false,error:"Isi dokumen maksimal 40.000 karakter."},413);
+   const name=String(b.file_name||"Dokumen.txt").replace(/[\\\/\0]/g,"_").slice(0,180);
+   const bytes=new TextEncoder().encode(content);let bin="";
+   for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+   await env.DB.batch([
+    env.DB.prepare("INSERT INTO documents(id,telegram_id,file_name,file_type,storage_key) VALUES(?,?,?,?,?)").bind(id,uid,name,"text/plain",id),
+    env.DB.prepare("INSERT INTO document_contents(document_id,content_base64,content_type) VALUES(?,?,?)").bind(id,btoa(bin),"text/plain")
+   ]);
+   return j({success:true,document:{id,file_name:name,file_type:"text/plain"}},201);
+  }
+  const f=await request.formData(),file=f.get("file");
+  if(!file||typeof file.arrayBuffer!=="function")return j({success:false,error:"Pilih file CV terlebih dahulu."},400);
+  const type=file.type||"application/octet-stream",ext=String(file.name||"").split(".").pop().toLowerCase(),types={"pdf":"application/pdf","doc":"application/msword","docx":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"};
+  if(!Object.hasOwn(types,ext)||types[ext]!==type)return j({success:false,error:"Ekstensi dan format file harus cocok: PDF, DOC, atau DOCX."},415);
+  if(file.size>900000)return j({success:false,error:"Ukuran file maksimal 900 KB sementara."},413);
+  const bytes=new Uint8Array(await file.arrayBuffer());let bin="";
+  for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+  const name=String(file.name||"CV").replace(/[\\\/\0]/g,"_").slice(0,180);
+  await env.DB.batch([
+   env.DB.prepare("INSERT INTO documents(id,telegram_id,file_name,file_type,storage_key) VALUES(?,?,?,?,?)").bind(id,uid,name,type,id),
+   env.DB.prepare("INSERT INTO document_contents(document_id,content_base64,content_type) VALUES(?,?,?)").bind(id,btoa(bin),type)
+  ]);
+  return j({success:true,document:{id,file_name:name,file_type:type}},201);
+ }
+ return j({success:false,error:"Method not allowed."},405);
+}
+m=u.pathname.match(/^\/api\/documents\/([^/]+)$/);
+if(m){
+ await ensure();const id=m[1];
+ if(request.method==="DELETE"){
+  await env.DB.prepare("DELETE FROM document_contents WHERE document_id=? AND EXISTS (SELECT 1 FROM documents WHERE documents.id=? AND documents.telegram_id=?)").bind(id,id,uid).run();
+  const r=await env.DB.prepare("DELETE FROM documents WHERE id=? AND telegram_id=?").bind(id,uid).run();
+  return r.meta?.changes?j({success:true}):j({success:false,error:"Dokumen tidak ditemukan."},404);
+ }
+ if(request.method==="GET"){
+  const r=await env.DB.prepare("SELECT d.file_name,c.content_base64,c.content_type FROM documents d JOIN document_contents c ON c.document_id=d.id WHERE d.id=? AND d.telegram_id=?").bind(id,uid).first();
+  if(!r)return j({success:false,error:"Dokumen tidak ditemukan."},404);
+  const b=atob(r.content_base64),bytes=new Uint8Array(b.length);for(let i=0;i<b.length;i++)bytes[i]=b.charCodeAt(i);
+  if(u.searchParams.get("format")==="json"&&r.content_type==="text/plain")return j({success:true,file_name:r.file_name,content:new TextDecoder().decode(bytes)});
+  return new Response(bytes,{headers:{"Content-Type":r.content_type,"Content-Disposition":'attachment; filename="'+r.file_name.replace(/["\\r\\n]/g,"_")+'"',"Cache-Control":"no-store"}});
+ }
+ if(request.method==="PUT"){
+  const b=await request.json(),content=String(b.content||"");
+  if(!content.trim())return j({success:false,error:"Isi dokumen tidak boleh kosong."},400);
+  if(content.length>40000)return j({success:false,error:"Isi dokumen maksimal 40.000 karakter."},413);
+  const name=String(b.file_name||"Dokumen.txt").replace(/[\\\/\0]/g,"_").slice(0,180);
+  const exists=await env.DB.prepare("SELECT id FROM documents WHERE id=? AND telegram_id=?").bind(id,uid).first();
+  if(!exists)return j({success:false,error:"Dokumen tidak ditemukan."},404);
+  const bytes=new TextEncoder().encode(content);let bin="";
+  for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+  await env.DB.batch([
+   env.DB.prepare("UPDATE documents SET file_name=? WHERE id=? AND telegram_id=?").bind(name,id,uid),
+   env.DB.prepare("UPDATE document_contents SET content_base64=?,content_type='text/plain' WHERE document_id=?").bind(btoa(bin),id)
+  ]);
+  return j({success:true});
+ }
+ return j({success:false,error:"Method not allowed."},405);
+}
 const usageDay=new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10);
 const getAiUsage=async()=>await env.DB.prepare("SELECT text_count,image_count,chat_count FROM ai_usage WHERE telegram_id=? AND usage_date=?").bind(uid,usageDay).first()||{text_count:0,image_count:0,chat_count:0};
 const consumeAiQuota=async(kind)=>{const config={text:{column:"text_count",limit:20},image:{column:"image_count",limit:10},chat:{column:"chat_count",limit:30}}[kind];if(!config)throw new Error("Unknown AI quota kind");const {column,limit}=config;const sql=`INSERT INTO ai_usage(telegram_id,usage_date,${column}) VALUES(?,?,1) ON CONFLICT(telegram_id,usage_date) DO UPDATE SET ${column}=${column}+1 WHERE ${column} < ? RETURNING ${column}`;const row=await env.DB.prepare(sql).bind(uid,usageDay,limit).first();return row?{ok:true,used:row[column],limit}:{ok:false,used:(await getAiUsage())[column],limit};};
