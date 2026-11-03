@@ -760,3 +760,18 @@ test("Job Match rejects too few vacancies before reserving quota or calling Gemi
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("manual email helper does not expose inactive Gmail OAuth controls", async () => {
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\\nexport default", start);
+  const html = JSON.parse(source.slice(start, end));
+  assert.match(html, /data-tab="gmail">Email &amp; Follow-up|data-tab="gmail">Email & Follow-up/);
+  assert.match(html, /id="emailSource"[^>]*maxlength="6000"/);
+  assert.match(html, /id="emailSummarize"/);
+  assert.match(html, /id="emailDraftReply"/);
+  assert.doesNotMatch(html, /id="gmailConnect"/);
+  assert.doesNotMatch(html, /id="gmailSync"/);
+  assert.match(html, /data tidak tepercaya/);
+});
