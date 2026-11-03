@@ -765,7 +765,7 @@ test("Job Match rejects too few vacancies before reserving quota or calling Gemi
 test("manual email helper does not expose inactive Gmail OAuth controls", async () => {
   const marker = "const APP_HTML=";
   const start = source.indexOf(marker) + marker.length;
-  const end = source.indexOf(";\\nexport default", start);
+  const end = source.indexOf(";\nexport default", start);
   const html = JSON.parse(source.slice(start, end));
   assert.match(html, /data-tab="gmail">Email &amp; Follow-up|data-tab="gmail">Email & Follow-up/);
   assert.match(html, /id="emailSource"[^>]*maxlength="6000"/);
