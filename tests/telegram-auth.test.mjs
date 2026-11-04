@@ -866,3 +866,75 @@ test("Job Intelligence rejects unauthenticated requests before provider access",
   }), env);
   assert.equal(response.status, 401);
 });
+
+
+test("Job Intelligence parses structured vacancy metadata and preserves the original source URL", async () => {
+  const env = mockEnv();
+  env.BRAVE_SEARCH_API_KEY = "test-brave-key";
+  const writes = [];
+  env.DB = {
+    prepare(sql) {
+      return { bind(...values) { return {
+        first: async () => sql.includes("job_search_usage") ? { search_count: 1 } : null,
+        run: async () => { writes.push({ sql, values }); return { success: true, meta: { changes: 1 } }; }
+      }; } };
+    }
+  };
+  const posting = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: "Warehouse Operator",
+    hiringOrganization: { "@type": "Organization", name: "Example Logistics" },
+    datePosted: "2026-11-01",
+    validThrough: "2026-12-01",
+    jobLocation: { address: { addressLocality: "Tangerang", addressRegion: "Banten", addressCountry: "ID" } },
+    description: "Picking, packing, and inventory control."
+  };
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requested.push(String(url));
+    if (String(url).startsWith("https://api.search.brave.com/")) {
+      return new Response(JSON.stringify({ web: { results: [
+        { title: "Warehouse Operator | Example Logistics", url: "https://jobs.example.test/warehouse-operator", description: "Warehouse role in Tangerang." },
+        { title: "Helper Produksi", url: "https://jobs.example.test/helper", description: "Production helper vacancy." }
+      ] } }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (String(url) === "https://jobs.example.test/warehouse-operator") {
+      return new Response("<html><script type='application/ld+json'>" + JSON.stringify(posting) + "</script></html>", {
+        status: 200, headers: { "Content-Type": "text/html" }
+      });
+    }
+    if (String(url) === "https://jobs.example.test/helper") {
+      return new Response("<html><body>No structured vacancy metadata.</body></html>", {
+        status: 200, headers: { "Content-Type": "text/html" }
+      });
+    }
+    throw new Error("Unexpected fetch: " + String(url));
+  };
+  try {
+    const response = await worker.fetch(new Request("https://jobmate.test/api/jobs/search", {
+      method: "POST",
+      headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+      body: JSON.stringify({ keywords: "warehouse", location: "Tangerang", freshness: "pm", scope: "all" })
+    }), env);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.success, true);
+    assert.equal(body.provider, "Brave Search");
+    assert.equal(body.jobs.length, 2);
+    const structured = body.jobs.find(job => job.title === "Warehouse Operator");
+    const review = body.jobs.find(job => job.title === "Helper Produksi");
+    assert.equal(structured.verification_status, "structured_data");
+    assert.equal(structured.company, "Example Logistics");
+    assert.match(structured.location, /Tangerang/);
+    assert.equal(structured.source_url, "https://jobs.example.test/warehouse-operator");
+    assert.equal(review.verification_status, "needs_review");
+    assert.ok(writes.some(write => write.sql.includes("INSERT INTO discovered_jobs")));
+    const providerRequest = new URL(requested.find(url => url.startsWith("https://api.search.brave.com/")));
+    assert.equal(providerRequest.searchParams.get("q").includes("warehouse"), true);
+    assert.equal(providerRequest.searchParams.get("q").includes("CV"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
