@@ -16,6 +16,8 @@ Private Telegram Mini App for organizing job applications and preparing career d
 ## Main features
 
 - Vacancy analysis from text or image.
+- Job Intelligence discovery through the Brave Search API, with original source links and JSON-LD JobPosting metadata checks.
+- Cyber intelligence dashboard theme with a responsive vacancy scanner.
 - Private professional profile.
 - ATS-friendly CV and application-letter generation.
 - ATS score estimation and multi-vacancy Job Match ranking.
@@ -57,8 +59,9 @@ The Worker dashboard is embedded in `src/index.js` as `APP_HTML`; keep it identi
 ## Deployment notes
 
 - Production and staging use separate Cloudflare Workers and D1 databases.
-- Keep `TELEGRAM_BOT_TOKEN` and `GEMINI_API_KEY` in Cloudflare Worker secrets only.
+- Keep `TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`, and `BRAVE_SEARCH_API_KEY` in Cloudflare Worker secrets only.
 - Never commit secrets or send them in chat.
 - Apply additive D1 migrations to the intended database before deploying schema-dependent changes.
+- Job Intelligence requires migration `0004_job_intelligence.sql` and the `BRAVE_SEARCH_API_KEY` secret. Follow `JOB_DISCOVERY_SETUP.md`; configure and test staging before production.
 - Run CI and staging checks before production deployment.
 - The production deployment must be smoke-tested from the real Telegram Mini App; a successful upload/deployment alone does not prove end-to-end functionality.
