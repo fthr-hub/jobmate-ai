@@ -2,45 +2,6 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#09090b"><script src="https://telegram.org/js/telegram-web-app.js">
-const jobResultsRoot=$("jobSearchResults");
-function renderJobResults(jobs){
- jobResultsRoot.replaceChildren();$("jobResultCount").textContent=jobs.length+" RECORDS";
- if(!jobs.length){const empty=document.createElement("div");empty.className="job-empty";empty.textContent="Tidak ada hasil untuk kombinasi pencarian ini. Coba kata kunci atau lokasi lain.";jobResultsRoot.append(empty);return;}
- for(const job of jobs){
-  const card=document.createElement("article");card.className="job-result";
-  const title=document.createElement("h3");title.textContent=job.title||"Judul lowongan belum tersedia";
-  const company=document.createElement("div");company.className="job-company";company.textContent=job.company||"Perusahaan belum teridentifikasi dari metadata sumber";
-  const chips=document.createElement("div");chips.className="job-meta";
-  const chip=(value,cls="")=>{if(!value)return;const el=document.createElement("span");el.className="job-chip "+cls;el.textContent=value;chips.append(el)};
-  chip(job.location||"Lokasi tidak disebut");chip(job.date_posted?"Dipublikasikan "+job.date_posted:"Tanggal publikasi tidak tersedia");
-  chip(job.verification_status==="structured_data"?"METADATA JOBPOSTING TERBACA":job.verification_status==="expired"?"TANGGAL KEDALUWARSA":"PERLU VERIFIKASI",job.verification_status);
-  const desc=document.createElement("p");desc.className="job-desc";desc.textContent=(job.description||"Ringkasan dari mesin pencari; buka sumber asli untuk persyaratan lengkap.").slice(0,650);
-  const actions=document.createElement("div");actions.className="job-actions";
-  const link=document.createElement("a");link.href=job.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="BUKA SUMBER ASLI ↗";actions.append(link);
-  const match=document.createElement("button");match.type="button";match.className="secondary";match.textContent="COCOKKAN DENGAN CV";match.addEventListener("click",()=>prepareJobMatch(job));actions.append(match);
-  card.append(title,company,chips,desc,actions);jobResultsRoot.append(card);
- }
-}
-function prepareJobMatch(job){
- const form=$("profileForm"),value=name=>String(form?.elements?.[name]?.value||"").trim();
- const cv=["NAMA: "+value("full_name"),"EMAIL: "+value("email"),"TELEPON: "+value("phone"),"KEAHLIAN: "+value("skills"),"PENGALAMAN: "+value("experience"),"PENDIDIKAN: "+value("education")].filter(x=>!x.endsWith(": ")).join("\n");
- if(!cv){status("jobSearchStatus","Lengkapi Profil & CV dulu agar pencocokan tidak memakai data kosong.","error");return;}
- $("atsCvText").value=cv;$("atsVacancyText").value=[job.title,job.company,job.location,job.description,job.source_url].filter(Boolean).join("\n");
- document.querySelector('.tab[data-tab="dokumen-ai"]')?.click();$("atsCheckButton")?.scrollIntoView({behavior:"smooth",block:"center"});
- status("atsStatus","Lowongan sudah dimasukkan. Tekan Periksa Skor ATS untuk analisis kecocokan.","success");
-}
-$("jobSearchForm").addEventListener("submit",async e=>{
- e.preventDefault();const button=$("jobSearchButton");button.disabled=true;button.textContent="SCANNING PUBLIC SOURCES...";
- status("jobSearchStatus","Menghubungi indeks pencarian dan memeriksa metadata sumber...");$("jobSearchMeta").textContent="Pemindaian sedang berjalan...";
- try{
-  const payload={keywords:$("jobKeywords").value.trim(),location:$("jobLocation").value.trim()||"Indonesia",freshness:$("jobFreshness").value,scope:$("jobScope").value};
-  const data=await request("/api/jobs/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-  renderJobResults(data.jobs||[]);$("jobSearchMeta").textContent="Provider: "+data.provider+" · "+(data.searched_at?new Date(data.searched_at).toLocaleString("id-ID"):"baru saja")+" · Sisa pencarian hari ini: "+data.remaining_searches;
-  status("jobSearchStatus",data.note||"Pemindaian selesai. Periksa halaman sumber sebelum melamar.","success");
- }catch(error){renderJobResults([]);$("jobSearchMeta").textContent="Pencarian belum menghasilkan data.";status("jobSearchStatus",error.message,"error");}
- finally{button.disabled=false;button.textContent="⌕  MULAI PEMINDAIAN LOWONGAN";}
-});
-
 </script>
 <title>JobMate AI</title>
 <style>
@@ -277,4 +238,44 @@ $("printEditedDocument").addEventListener("click",()=>{const value=$("documentEd
 
 </script><script>
 (()=>{const splash=document.getElementById('appSplash');const finish=()=>{if(!splash||splash.classList.contains('is-leaving'))return;splash.classList.add('is-leaving');window.setTimeout(()=>splash.remove(),600)};if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){finish()}else{window.setTimeout(finish,1450)}splash?.addEventListener('click',finish,{once:true})})();
+const jobResultsRoot=$("jobSearchResults");
+function renderJobResults(jobs){
+ jobResultsRoot.replaceChildren();$("jobResultCount").textContent=jobs.length+" RECORDS";
+ if(!jobs.length){const empty=document.createElement("div");empty.className="job-empty";empty.textContent="Tidak ada hasil untuk kombinasi pencarian ini. Coba kata kunci atau lokasi lain.";jobResultsRoot.append(empty);return;}
+ for(const job of jobs){
+  const card=document.createElement("article");card.className="job-result";
+  const title=document.createElement("h3");title.textContent=job.title||"Judul lowongan belum tersedia";
+  const company=document.createElement("div");company.className="job-company";company.textContent=job.company||"Perusahaan belum teridentifikasi dari metadata sumber";
+  const chips=document.createElement("div");chips.className="job-meta";
+  const chip=(value,cls="")=>{if(!value)return;const el=document.createElement("span");el.className="job-chip "+cls;el.textContent=value;chips.append(el)};
+  chip(job.location||"Lokasi tidak disebut");chip(job.date_posted?"Dipublikasikan "+job.date_posted:"Tanggal publikasi tidak tersedia");
+  chip(job.verification_status==="structured_data"?"METADATA JOBPOSTING TERBACA":job.verification_status==="expired"?"TANGGAL KEDALUWARSA":"PERLU VERIFIKASI",job.verification_status);
+  const desc=document.createElement("p");desc.className="job-desc";desc.textContent=(job.description||"Ringkasan dari mesin pencari; buka sumber asli untuk persyaratan lengkap.").slice(0,650);
+  const actions=document.createElement("div");actions.className="job-actions";
+  const link=document.createElement("a");link.href=job.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="BUKA SUMBER ASLI ↗";actions.append(link);
+  const match=document.createElement("button");match.type="button";match.className="secondary";match.textContent="COCOKKAN DENGAN CV";match.addEventListener("click",()=>prepareJobMatch(job));actions.append(match);
+  card.append(title,company,chips,desc,actions);jobResultsRoot.append(card);
+ }
+}
+function prepareJobMatch(job){
+ const form=$("profileForm"),value=name=>String(form?.elements?.[name]?.value||"").trim();
+ const cv=["NAMA: "+value("full_name"),"EMAIL: "+value("email"),"TELEPON: "+value("phone"),"KEAHLIAN: "+value("skills"),"PENGALAMAN: "+value("experience"),"PENDIDIKAN: "+value("education")].filter(x=>!x.endsWith(": ")).join("\n");
+ if(!cv){status("jobSearchStatus","Lengkapi Profil & CV dulu agar pencocokan tidak memakai data kosong.","error");return;}
+ $("atsCvText").value=cv;$("atsVacancyText").value=[job.title,job.company,job.location,job.description,job.source_url].filter(Boolean).join("\n");
+ document.querySelector('.tab[data-tab="dokumen-ai"]')?.click();$("atsCheckButton")?.scrollIntoView({behavior:"smooth",block:"center"});
+ status("atsStatus","Lowongan sudah dimasukkan. Tekan Periksa Skor ATS untuk analisis kecocokan.","success");
+}
+$("jobSearchForm").addEventListener("submit",async e=>{
+ e.preventDefault();const button=$("jobSearchButton");button.disabled=true;button.textContent="SCANNING PUBLIC SOURCES...";
+ status("jobSearchStatus","Menghubungi indeks pencarian dan memeriksa metadata sumber...");$("jobSearchMeta").textContent="Pemindaian sedang berjalan...";
+ try{
+  const payload={keywords:$("jobKeywords").value.trim(),location:$("jobLocation").value.trim()||"Indonesia",freshness:$("jobFreshness").value,scope:$("jobScope").value};
+  const data=await request("/api/jobs/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  renderJobResults(data.jobs||[]);$("jobSearchMeta").textContent="Provider: "+data.provider+" · "+(data.searched_at?new Date(data.searched_at).toLocaleString("id-ID"):"baru saja")+" · Sisa pencarian hari ini: "+data.remaining_searches;
+  status("jobSearchStatus",data.note||"Pemindaian selesai. Periksa halaman sumber sebelum melamar.","success");
+ }catch(error){renderJobResults([]);$("jobSearchMeta").textContent="Pencarian belum menghasilkan data.";status("jobSearchStatus",error.message,"error");}
+ finally{button.disabled=false;button.textContent="⌕  MULAI PEMINDAIAN LOWONGAN";}
+});
+
+
 </script></div></body></html>
