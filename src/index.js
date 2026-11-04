@@ -320,11 +320,21 @@ if(u.pathname==="/api/jobs/search"){
   const levelTerms=scope==="entry"?"entry level OR pemula OR tanpa pengalaman":scope==="fresh"?"fresh graduate OR lulusan SMK":"";
   const query=[baseTerms,location,levelTerms,"lowongan kerja OR career OR karier"].filter(Boolean).join(" ");
   const freshnessFilter=freshness==="pw"?"qdr:w":freshness==="py"?"qdr:y":"qdr:m";
+  const companyTargets=[
+   {title:"Yamaha Indonesia",company:"Yamaha Motor Manufacturing Indonesia",terms:'("Yamaha Motor Manufacturing Indonesia" OR "PT Yamaha Indonesia Motor Manufacturing")'},
+   {title:"Astra Group",company:"Astra Group dan anak perusahaan",terms:'(Astra OR "PT Astra Honda Motor" OR "Astra Otoparts" OR "United Tractors")'},
+   {title:"Toyota Indonesia",company:"Toyota Motor Manufacturing Indonesia",terms:'("Toyota Motor Manufacturing Indonesia" OR "Toyota Indonesia")'},
+   {title:"Honda Indonesia",company:"Honda Prospect Motor dan jaringan manufaktur",terms:'("Honda Prospect Motor" OR "PT Honda Prospect Motor")'},
+   {title:"Indofood",company:"Indofood dan Indofood CBP",terms:'(Indofood OR "Indofood CBP")'},
+   {title:"Mayora",company:"Mayora Indah",terms:'("Mayora Indah" OR Mayora)'},
+   {title:"Unilever Indonesia",company:"Unilever Indonesia",terms:'("Unilever Indonesia" OR Unilever)'}
+  ];
   const sources=[
-   {title:"Google Jobs",company:"Google — hasil khusus lowongan",query:query, jobs:true,description:"Cari lowongan yang terindeks Google Jobs. Gunakan filter tanggal dan lokasi di halaman hasil."},
+   {title:"Google Jobs",company:"Google — hasil khusus lowongan",query:query,jobs:true,description:"Cari lowongan yang terindeks Google Jobs. Gunakan filter tanggal dan lokasi di halaman hasil."},
    {title:"Indeed Indonesia",company:"Indeed",query:"site:id.indeed.com "+query,description:"Telusuri lowongan di Indeed Indonesia."},
    {title:"JobStreet Indonesia",company:"JobStreet",query:"site:jobstreet.co.id "+query,description:"Telusuri lowongan di JobStreet Indonesia."},
    {title:"LinkedIn Jobs",company:"LinkedIn",query:"site:id.linkedin.com/jobs "+query,description:"Telusuri lowongan yang dipublikasikan melalui LinkedIn."},
+   ...companyTargets.map(target=>({title:target.title,company:target.company,query:target.terms+" "+baseTerms+" "+location+" (career OR karier OR recruitment OR lowongan)",description:"Pencarian lowongan yang menargetkan "+target.company+". Hasil Google tetap perlu dibuka dan diverifikasi melalui kanal rekrutmen resmi perusahaan."})),
    {title:"Karier perusahaan besar",company:"Halaman karier resmi perusahaan",query:'(karier OR career OR recruitment) (Astra OR Yamaha OR Indofood OR Mayora OR Unilever OR Toyota OR Honda) '+baseTerms+' '+location,description:"Cari halaman rekrutmen resmi perusahaan besar. Pastikan domain dan nama perusahaan benar sebelum mengirim data."},
    {title:"Peluang helper & operator industri",company:"Manufaktur, logistik, dan pertambangan",query:'(helper OR "operator produksi" OR warehouse OR "operator alat berat") (recruitment OR lowongan OR career) '+location,description:"Pencarian lintas industri untuk posisi operasional dan entry-level."}
   ];
