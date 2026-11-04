@@ -1,7 +1,47 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#09090b"><script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#09090b"><script src="https://telegram.org/js/telegram-web-app.js">
+const jobResultsRoot=$("jobSearchResults");
+function renderJobResults(jobs){
+ jobResultsRoot.replaceChildren();$("jobResultCount").textContent=jobs.length+" RECORDS";
+ if(!jobs.length){const empty=document.createElement("div");empty.className="job-empty";empty.textContent="Tidak ada hasil untuk kombinasi pencarian ini. Coba kata kunci atau lokasi lain.";jobResultsRoot.append(empty);return;}
+ for(const job of jobs){
+  const card=document.createElement("article");card.className="job-result";
+  const title=document.createElement("h3");title.textContent=job.title||"Judul lowongan belum tersedia";
+  const company=document.createElement("div");company.className="job-company";company.textContent=job.company||"Perusahaan belum teridentifikasi dari metadata sumber";
+  const chips=document.createElement("div");chips.className="job-meta";
+  const chip=(value,cls="")=>{if(!value)return;const el=document.createElement("span");el.className="job-chip "+cls;el.textContent=value;chips.append(el)};
+  chip(job.location||"Lokasi tidak disebut");chip(job.date_posted?"Dipublikasikan "+job.date_posted:"Tanggal publikasi tidak tersedia");
+  chip(job.verification_status==="structured_data"?"METADATA JOBPOSTING TERBACA":job.verification_status==="expired"?"TANGGAL KEDALUWARSA":"PERLU VERIFIKASI",job.verification_status);
+  const desc=document.createElement("p");desc.className="job-desc";desc.textContent=(job.description||"Ringkasan dari mesin pencari; buka sumber asli untuk persyaratan lengkap.").slice(0,650);
+  const actions=document.createElement("div");actions.className="job-actions";
+  const link=document.createElement("a");link.href=job.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="BUKA SUMBER ASLI ↗";actions.append(link);
+  const match=document.createElement("button");match.type="button";match.className="secondary";match.textContent="COCOKKAN DENGAN CV";match.addEventListener("click",()=>prepareJobMatch(job));actions.append(match);
+  card.append(title,company,chips,desc,actions);jobResultsRoot.append(card);
+ }
+}
+function prepareJobMatch(job){
+ const form=$("profileForm"),value=name=>String(form?.elements?.[name]?.value||"").trim();
+ const cv=["NAMA: "+value("full_name"),"EMAIL: "+value("email"),"TELEPON: "+value("phone"),"KEAHLIAN: "+value("skills"),"PENGALAMAN: "+value("experience"),"PENDIDIKAN: "+value("education")].filter(x=>!x.endsWith(": ")).join("\n");
+ if(!cv){status("jobSearchStatus","Lengkapi Profil & CV dulu agar pencocokan tidak memakai data kosong.","error");return;}
+ $("atsCvText").value=cv;$("atsVacancyText").value=[job.title,job.company,job.location,job.description,job.source_url].filter(Boolean).join("\n");
+ document.querySelector('.tab[data-tab="dokumen-ai"]')?.click();$("atsCheckButton")?.scrollIntoView({behavior:"smooth",block:"center"});
+ status("atsStatus","Lowongan sudah dimasukkan. Tekan Periksa Skor ATS untuk analisis kecocokan.","success");
+}
+$("jobSearchForm").addEventListener("submit",async e=>{
+ e.preventDefault();const button=$("jobSearchButton");button.disabled=true;button.textContent="SCANNING PUBLIC SOURCES...";
+ status("jobSearchStatus","Menghubungi indeks pencarian dan memeriksa metadata sumber...");$("jobSearchMeta").textContent="Pemindaian sedang berjalan...";
+ try{
+  const payload={keywords:$("jobKeywords").value.trim(),location:$("jobLocation").value.trim()||"Indonesia",freshness:$("jobFreshness").value,scope:$("jobScope").value};
+  const data=await request("/api/jobs/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  renderJobResults(data.jobs||[]);$("jobSearchMeta").textContent="Provider: "+data.provider+" · "+(data.searched_at?new Date(data.searched_at).toLocaleString("id-ID"):"baru saja")+" · Sisa pencarian hari ini: "+data.remaining_searches;
+  status("jobSearchStatus",data.note||"Pemindaian selesai. Periksa halaman sumber sebelum melamar.","success");
+ }catch(error){renderJobResults([]);$("jobSearchMeta").textContent="Pencarian belum menghasilkan data.";status("jobSearchStatus",error.message,"error");}
+ finally{button.disabled=false;button.textContent="⌕  MULAI PEMINDAIAN LOWONGAN";}
+});
+
+</script>
 <title>JobMate AI</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -32,10 +72,25 @@ section.panel{display:none;background:var(--surface);border:1px solid var(--line
 @keyframes splashLoad{0%{transform:translateX(-120%)}100%{transform:translateX(250%)}}
 @keyframes appReveal{to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){#appSplash,#appContent{transition:none;animation:none}.splash-inner,.splash-title,.splash-subtitle,.splash-loader{animation:none;opacity:1;transform:none}.splash-mark,.splash-mark:after,.splash-loader:after{animation:none}#appContent{opacity:1;transform:none}}
+
+:root{color-scheme:dark;--bg:#05090c;--surface:#0b1418;--surface2:#101e23;--line:#1d3940;--muted:#8ca6a8;--text:#e2f5f1;--accent:#b8ff5c;--blue:#4de2d0;--red:#ff8585}
+body{background-color:var(--bg);background-image:radial-gradient(ellipse at 12% -12%,rgba(35,103,93,.25),transparent 42%),linear-gradient(rgba(77,226,208,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(77,226,208,.025) 1px,transparent 1px);background-size:auto,32px 32px,32px 32px}
+.brandmark{border:1px solid rgba(184,255,92,.65);box-shadow:0 0 22px rgba(184,255,92,.12);background:linear-gradient(145deg,#172a20,#0b1714);color:var(--accent)}
+.topmeta,.tag{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.7px}.topmeta{border-color:#28504b;color:#a8d4c9;background:rgba(8,25,25,.65)}
+.hero{border-color:#28514d;background:linear-gradient(115deg,rgba(10,32,33,.97),rgba(9,20,27,.98) 62%,rgba(18,37,26,.96));box-shadow:inset 0 1px rgba(184,255,92,.08),0 18px 55px rgba(0,0,0,.18)}
+.eyebrow{color:var(--blue);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.7px}.hero-stat strong{color:var(--accent);text-shadow:0 0 22px rgba(184,255,92,.22)}
+.stat,section.panel,.card,.onboarding{background:rgba(10,20,24,.94);border-color:var(--line)}.tabs{background:rgba(5,13,17,.92);border-color:#1d3940}.tab.active{background:var(--accent);color:#09120b;box-shadow:0 0 18px rgba(184,255,92,.12)}
+button{transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}button:not(:disabled):active{transform:translateY(1px)}button:not(.tab):not(.secondary){box-shadow:0 0 18px rgba(184,255,92,.08)}
+input,textarea,select{background:#071014!important;border-color:#244149!important;color:var(--text)!important}input:focus,textarea:focus,select:focus{outline:1px solid rgba(77,226,208,.65);box-shadow:0 0 0 3px rgba(77,226,208,.08)}
+.panel .tag{border-color:#28534b;color:#b8ff5c;background:rgba(20,44,34,.45)}
+.job-console{border:1px solid #24504b;background:linear-gradient(135deg,rgba(8,26,27,.96),rgba(8,16,22,.96));border-radius:16px;padding:16px;margin:14px 0}
+.job-console-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.job-live{display:inline-flex;align-items:center;gap:8px;color:#b8ff5c;font:11px ui-monospace,monospace;letter-spacing:1px}.job-live:before{content:"";width:7px;height:7px;border-radius:50%;background:#b8ff5c;box-shadow:0 0 12px #b8ff5c;animation:jobPulse 1.8s infinite}@keyframes jobPulse{50%{opacity:.35;box-shadow:0 0 3px #b8ff5c}}
+.job-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}.job-results{display:grid;gap:12px;margin-top:16px}.job-result{border:1px solid #244149;background:linear-gradient(145deg,#0c191d,#0a1218);border-radius:14px;padding:16px}.job-result h3{font:700 16px Manrope;margin:0 0 5px;color:#e7fff7}.job-company{color:#a7c9c2;font-size:13px;margin-bottom:8px}.job-meta{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.job-chip{border:1px solid #28474b;border-radius:99px;padding:4px 8px;color:#a7c9c2;font:10px ui-monospace,monospace}.job-chip.structured_data{color:#c8ff8c;border-color:#426b35}.job-chip.expired{color:#ff9a9a;border-color:#744242}.job-desc{color:#9db2b2;font-size:12px;line-height:1.6;overflow-wrap:anywhere}.job-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.job-actions a{color:var(--blue);font-size:12px;text-decoration:none}.job-empty{border:1px dashed #315158;border-radius:14px;padding:22px;color:var(--muted);text-align:center}.job-footnote{font-size:11px;line-height:1.6;color:#819a9b;margin-top:12px}
+@media(max-width:620px){body{padding:18px 12px}.job-grid{grid-template-columns:1fr}.job-result{padding:13px}.hero{padding:20px}.topmeta{display:none}}
 </style></head>
 <body><div id="appSplash" role="status" aria-label="Menyiapkan JobMate AI"><div class="splash-inner"><div class="splash-mark" aria-hidden="true">J</div><div class="splash-title">JobMate AI</div><div class="splash-subtitle">Your personal career workspace</div><div class="splash-loader" aria-hidden="true"></div></div></div><div id="appContent"><main>
-<header><div class="brand"><div class="brandmark">J</div><div><h1>JobMate AI</h1><p>Your personal career workspace</p></div></div><div class="topmeta">PERSONAL WORKSPACE · PRIVATE</div></header>
-<div class="hero"><div><div class="eyebrow">Career command center</div><h2>Build your next career move.</h2><p>Kelola CV, pahami peluang kerja, dan siapkan langkah berikutnya dengan bantuan AI.</p></div><div class="hero-stat"><strong>AI</strong><span>CAREER ASSISTANT</span></div></div>
+<header><div class="brand"><div class="brandmark">J</div><div><h1>JobMate AI</h1><p>Your personal career workspace</p></div></div><div class="topmeta">● SECURE WORKSPACE · PRIVATE</div></header>
+<div class="hero"><div><div class="eyebrow">◈ CYBER INTELLIGENCE / CAREER COMMAND</div><h2>Build your next career move.</h2><p>Kelola CV, pahami peluang kerja, dan siapkan langkah berikutnya dengan bantuan AI.</p></div><div class="hero-stat"><strong>AI</strong><span>CAREER ASSISTANT</span></div></div>
 <div class="stats"><div class="stat"><span>Total lamaran</span><strong id="statTotal">—</strong></div><div class="stat"><span>Interview</span><strong id="statInterview">—</strong></div><div class="stat"><span>CV tersimpan</span><strong id="statCV">—</strong></div></div>
 <section class="onboarding" id="onboarding" aria-labelledby="onboardingTitle">
  <div class="onboarding-head"><div><div class="eyebrow">FIRST STEPS</div><h2 id="onboardingTitle">Mulai di sini</h2><p class="muted" id="onboardingSummary">Menyiapkan progres akun lu...</p></div><span class="tag" id="onboardingCount">0/3 SELESAI</span></div>
@@ -47,7 +102,7 @@ section.panel{display:none;background:var(--surface);border:1px solid var(--line
  </div>
 </section>
 <nav class="tabs" aria-label="Navigasi">
-<button class="tab active" data-tab="analisis">Analisis AI</button><button class="tab" data-tab="profil">Profil & CV</button><button class="tab" data-tab="dokumen-ai">CV & Surat AI</button><button class="tab" data-tab="pustaka">Dokumen</button><button class="tab" data-tab="lamaran">Lamaran</button><button class="tab" data-tab="chat">Tanya AI</button>
+<button class="tab active" data-tab="analisis">Analisis AI</button><button class="tab" data-tab="jobs">Job Intelligence</button><button class="tab" data-tab="profil">Profil & CV</button><button class="tab" data-tab="dokumen-ai">CV & Surat AI</button><button class="tab" data-tab="pustaka">Dokumen</button><button class="tab" data-tab="lamaran">Lamaran</button><button class="tab" data-tab="chat">Tanya AI</button>
 <button class="tab" data-tab="gmail">Email & Follow-up</button></nav>
 <section id="analisis" class="panel active">
 <div class="stack">
@@ -56,6 +111,19 @@ section.panel{display:none;background:var(--surface);border:1px solid var(--line
 <hr style="width:100%;border:0;border-top:1px solid var(--line);margin:12px 0">
 <div><h2>Baca foto lowongan</h2><p class="muted">JPG, PNG, atau WEBP. Maksimal 6 MB.</p></div><div id="quota" class="quota">Memuat kuota AI...</div><input id="imageInput" type="file" accept="image/jpeg,image/png,image/webp"><img id="preview" class="preview" alt="Preview foto"><button id="imageButton">Baca & Analisis Foto</button><div id="imageStatus" class="status"></div><div id="imageResult" class="result"></div>
 </div></section>
+
+<section id="jobs" class="panel">
+ <div class="section-head"><div><div class="eyebrow">GLOBAL VACANCY SCANNER</div><h2>Job Intelligence</h2><p class="muted">Cari peluang dari berbagai perusahaan dan industri. Setiap hasil menyertakan sumber asli dan status verifikasi data.</p></div><span class="tag">DISCOVERY NODE</span></div>
+ <div class="job-console"><div class="job-console-head"><span class="job-live">SCANNER READY</span><span class="tag">PUBLIC WEB SOURCES</span></div>
+ <p class="muted" style="margin:10px 0 14px">Masukkan posisi atau kata kunci. Kosongkan kata kunci untuk pencarian lowongan umum di Indonesia.</p>
+ <form id="jobSearchForm" class="stack">
+ <div class="job-grid"><label>Posisi / keyword<input id="jobKeywords" maxlength="120" placeholder="Contoh: helper, warehouse, operator produksi"></label><label>Lokasi<input id="jobLocation" maxlength="100" value="Indonesia" placeholder="Kota, provinsi, atau Indonesia"></label></div>
+ <div class="job-grid"><label>Rentang publikasi<select id="jobFreshness"><option value="pw">7 hari terakhir</option><option value="pm" selected>30 hari terakhir</option><option value="py">1 tahun terakhir</option></select></label><label>Jenis pencarian<select id="jobScope"><option value="all">Semua industri & perusahaan</option><option value="entry">Entry-level / pemula</option><option value="fresh">Fresh graduate</option></select></label></div>
+ <button id="jobSearchButton" type="submit">⌕  MULAI PEMINDAIAN LOWONGAN</button><div id="jobSearchStatus" class="status" aria-live="polite"></div></form></div>
+ <div class="section-head"><div><h3>Hasil pemindaian</h3><p id="jobSearchMeta" class="muted">Belum ada pencarian dijalankan.</p></div><span id="jobResultCount" class="tag">0 RECORDS</span></div>
+ <div id="jobSearchResults" class="job-results"><div class="job-empty">Menunggu perintah pencarian. JobMate akan menampilkan sumber, tanggal publikasi, dan metadata verifikasi jika tersedia.</div></div>
+ <p class="job-footnote">TRANSPARENCY NOTE: hasil pencarian web bukan jaminan lowongan masih menerima pelamar. JobMate menandai metadata terstruktur secara terpisah, menyertakan URL sumber, dan tidak menyebut lowongan aktif tanpa bukti yang memadai. Selalu cek halaman perusahaan sebelum mengirim data pribadi.</p>
+</section>
 <section id="profil" class="panel">
 <div class="section-head"><div><h2>Profil profesional</h2><p>Informasi karier yang bisa dibaca dan diperbarui setelah CV dianalisis.</p></div><span class="tag">PROFILE</span></div>
 <form id="profileForm" class="stack">
