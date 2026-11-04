@@ -832,13 +832,13 @@ test("renders vacancy analysis Markdown as safe structured HTML", async () => {
 });
 
 test("Job Intelligence UI uses the free public-search workflow", async () => {
-  assert.match(source, /u\\.pathname===["']\\/api\\/jobs\\/search["']/);
+  assert.match(source, /u\.pathname===["']\/api\/jobs\/search["']/);
   assert.match(source, /Free Google Search Links/);
-  assert.match(source, /www\\.google\\.com\\/search/);
-  assert.doesNotMatch(source, /BRAVE_SEARCH_API_KEY|api\\.search\\.brave\\.com/);
+  assert.match(source, /www\.google\.com\/search/);
+  assert.doesNotMatch(source, /BRAVE_SEARCH_API_KEY|api\.search\.brave\.com/);
   const marker = "const APP_HTML=";
   const start = source.indexOf(marker) + marker.length;
-  const end = source.indexOf(";\\nexport default", start);
+  const end = source.indexOf(";\nexport default", start);
   const html = JSON.parse(source.slice(start, end));
   assert.match(html, /data-tab="jobs">Job Intelligence/);
   assert.match(html, /CARI LOWONGAN GRATIS/);
@@ -862,7 +862,7 @@ test("Job Intelligence returns zero-cost search links without an external API or
   const googleJobs = new URL(body.jobs[0].source_url);
   assert.match(googleJobs.searchParams.get("q"), /warehouse/);
   assert.equal(googleJobs.searchParams.get("ibp"), "htl;jobs");
-  assert.match(new URL(body.jobs[2].source_url).searchParams.get("q"), /jobstreet\\.co\\.id/);
+  assert.match(new URL(body.jobs[2].source_url).searchParams.get("q"), /jobstreet\.co\.id/);
   assert.match(body.note, /CV dan data kontak tidak dikirim/);
 });
 
