@@ -16,6 +16,10 @@ Job Intelligence searches public web results through the Brave Search API. It do
 5. Open the real Telegram Mini App as the authorized owner and test search, source links, and the ATS handoff.
 6. Do not promote to production until the staging smoke test is successful and production migration/secret changes are explicitly planned.
 
+## Provider cost note
+
+The current Brave Search pricing page lists Search at $5 per 1,000 requests and includes $5 in monthly credits. With JobMate's limit of 10 searches/day, 300 searches in a 30-day month would be about $1.50 at that listed rate, before any pricing changes or account-specific terms. Brave's setup flow requires activating a plan before creating an API key; check the dashboard before enabling it.
+
 ## Data quality behavior
 
 - The provider is the Brave Search Web Search API. Search results are discovery leads, not verified vacancies.
