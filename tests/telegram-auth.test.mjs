@@ -856,7 +856,11 @@ test("Job Intelligence returns zero-cost search links without an external API or
   const body = await response.json();
   assert.equal(body.success, true);
   assert.equal(body.provider, "Free Google Search Links");
-  assert.equal(body.jobs.length, 6);
+  assert.equal(body.jobs.length, 13);
+  assert.deepEqual(body.jobs.slice(4, 11).map(job => job.title), [
+    "Yamaha Indonesia", "Astra Group", "Toyota Indonesia", "Honda Indonesia",
+    "Indofood", "Mayora", "Unilever Indonesia"
+  ]);
   assert.ok(body.jobs.every(job => job.source_url.startsWith("https://www.google.com/search?")));
   assert.ok(body.jobs.every(job => job.verification_status === "needs_review"));
   const googleJobs = new URL(body.jobs[0].source_url);
