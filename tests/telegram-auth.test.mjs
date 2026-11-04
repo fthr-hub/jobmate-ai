@@ -837,7 +837,7 @@ test("Job Intelligence UI is present and discovery endpoint remains owner-authen
   assert.match(source, /api\.search\.brave\.com\/res\/v1\/web\/search/);
   const marker = "const APP_HTML=";
   const start = source.indexOf(marker) + marker.length;
-  const end = source.indexOf(";\\nexport default", start);
+  const end = source.indexOf(";\nexport default", start);
   const html = JSON.parse(source.slice(start, end));
   assert.match(html, /data-tab="jobs">Job Intelligence/);
   assert.match(html, /id="jobSearchForm"/);
