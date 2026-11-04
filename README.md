@@ -16,6 +16,8 @@ Private Telegram Mini App for organizing job applications and preparing career d
 ## Main features
 
 - Vacancy analysis from text or image.
+- Job Intelligence zero-cost search links to Google Jobs, Indeed, JobStreet, LinkedIn, and company career-page searches.
+- Cyber intelligence dashboard theme with a responsive vacancy scanner.
 - Private professional profile.
 - ATS-friendly CV and application-letter generation.
 - ATS score estimation and multi-vacancy Job Match ranking.
@@ -23,6 +25,8 @@ Private Telegram Mini App for organizing job applications and preparing career d
 - Private document center for generated text and uploaded PDF/DOC/DOCX files.
 - Career chat and manual email summary/reply assistance.
 - Export generated documents to TXT, DOCX, or print/save as PDF.
+
+Job Intelligence builds public search links without a paid search API or extra D1 migration. Search results are supplied by Google and destination sites; JobMate does not claim vacancies are active. Candidate CV/contact data is not sent to search engines.
 
 ## AI limits
 
@@ -57,8 +61,9 @@ The Worker dashboard is embedded in `src/index.js` as `APP_HTML`; keep it identi
 ## Deployment notes
 
 - Production and staging use separate Cloudflare Workers and D1 databases.
-- Keep `TELEGRAM_BOT_TOKEN` and `GEMINI_API_KEY` in Cloudflare Worker secrets only.
+- Keep `TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`, and other credentials in Cloudflare Worker secrets only.
 - Never commit secrets or send them in chat.
 - Apply additive D1 migrations to the intended database before deploying schema-dependent changes.
+- Job Intelligence free mode requires no paid search API key and no additional D1 migration. See `JOB_DISCOVERY_SETUP.md`.
 - Run CI and staging checks before production deployment.
 - The production deployment must be smoke-tested from the real Telegram Mini App; a successful upload/deployment alone does not prove end-to-end functionality.

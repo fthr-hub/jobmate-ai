@@ -830,3 +830,48 @@ test("renders vacancy analysis Markdown as safe structured HTML", async () => {
   assert.ok(html.includes("appendInlineMarkdown"));
   assert.ok(html.includes("node.textContent="));
 });
+
+test("Job Intelligence UI uses the free public-search workflow", async () => {
+  assert.match(source, /u\.pathname===["']\/api\/jobs\/search["']/);
+  assert.match(source, /Free Google Search Links/);
+  assert.match(source, /www\.google\.com\/search/);
+  assert.doesNotMatch(source, /BRAVE_SEARCH_API_KEY|api\.search\.brave\.com/);
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\nexport default", start);
+  const html = JSON.parse(source.slice(start, end));
+  assert.match(html, /data-tab="jobs">Job Intelligence/);
+  assert.match(html, /CARI LOWONGAN GRATIS/);
+  assert.match(html, /PENCARIAN EKSTERNAL/);
+});
+
+test("Job Intelligence returns zero-cost search links without an external API or D1 writes", async () => {
+  const env = mockEnv();
+  const response = await worker.fetch(new Request("https://jobmate.test/api/jobs/search", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+    body: JSON.stringify({ keywords: "warehouse", location: "Tangerang", freshness: "pm", scope: "entry" })
+  }), env);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.provider, "Free Google Search Links");
+  assert.equal(body.jobs.length, 6);
+  assert.ok(body.jobs.every(job => job.source_url.startsWith("https://www.google.com/search?")));
+  assert.ok(body.jobs.every(job => job.verification_status === "needs_review"));
+  const googleJobs = new URL(body.jobs[0].source_url);
+  assert.match(googleJobs.searchParams.get("q"), /warehouse/);
+  assert.equal(googleJobs.searchParams.get("ibp"), "htl;jobs");
+  assert.match(new URL(body.jobs[2].source_url).searchParams.get("q"), /jobstreet\.co\.id/);
+  assert.match(body.note, /CV dan data kontak tidak dikirim/);
+});
+
+test("Job Intelligence rejects unauthenticated requests", async () => {
+  const env = mockEnv();
+  const response = await worker.fetch(new Request("https://jobmate.test/api/jobs/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keywords: "warehouse", location: "Indonesia" })
+  }), env);
+  assert.equal(response.status, 401);
+});
