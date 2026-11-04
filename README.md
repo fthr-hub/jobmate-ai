@@ -26,6 +26,8 @@ Private Telegram Mini App for organizing job applications and preparing career d
 - Career chat and manual email summary/reply assistance.
 - Export generated documents to TXT, DOCX, or print/save as PDF.
 
+Job Intelligence performs up to 10 public-web discovery searches per WIB day. Each search returns up to 10 candidate results; structured JobPosting metadata is surfaced separately from records that need manual verification. Results are not a guarantee of active hiring.
+
 ## AI limits
 
 Daily quotas are per authenticated Telegram owner and reset at 00:00 WIB:
