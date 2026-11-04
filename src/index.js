@@ -347,17 +347,16 @@ if(u.pathname==="/api/jobs/search"){
     return {title:cleanText(item.title),company:cleanText(org.name),location:cleanText(loc),employment_type:cleanText(Array.isArray(item.employmentType)?item.employmentType.join(", "):item.employmentType),description:cleanText(item.description),date_posted:cleanText(item.datePosted).slice(0,40),valid_through:cleanText(item.validThrough).slice(0,40)};
    }catch{return null;}
   };
-  const jobs=[];
-  for(const result of results){
-   const sourceUrl=safeUrl(result.url);if(!sourceUrl)continue;
+  const jobs=(await Promise.all(results.map(async result=>{
+   const sourceUrl=safeUrl(result.url);if(!sourceUrl)return null;
    const structured=await extractPosting(sourceUrl),valid=structured?.valid_through?Date.parse(structured.valid_through):NaN;
    const verification=Number.isFinite(valid)&&valid<Date.now()?"expired":structured?.title&&structured?.company&&structured?.date_posted?"structured_data":"needs_review";
    const title=structured?.title||cleanText(result.title)||"Lowongan kerja",company=structured?.company||null,description=structured?.description||cleanText(result.description);
    const idBytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(sourceUrl.toString())),jobId=[...new Uint8Array(idBytes)].slice(0,16).map(x=>x.toString(16).padStart(2,"0")).join("");
    const posted=structured?.date_posted||result.page_age||null,locationText=structured?.location||location;
    await env.DB.prepare("INSERT INTO discovered_jobs(id,source_key,source_url,source_domain,title,company,location,employment_type,description,date_posted,valid_through,verification_status,verified_at,search_query,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(source_url) DO UPDATE SET title=excluded.title,company=excluded.company,location=excluded.location,employment_type=excluded.employment_type,description=excluded.description,date_posted=excluded.date_posted,valid_through=excluded.valid_through,verification_status=excluded.verification_status,verified_at=excluded.verified_at,search_query=excluded.search_query,updated_at=CURRENT_TIMESTAMP").bind(jobId,"brave-web",sourceUrl.toString(),sourceUrl.hostname,title,company,locationText,structured?.employment_type||null,description,posted,structured?.valid_through||null,verification,structured?new Date().toISOString():null,query).run();
-   jobs.push({id:jobId,title,company,location:locationText,employment_type:structured?.employment_type||null,description,source_url:sourceUrl.toString(),source_domain:sourceUrl.hostname,date_posted:posted,valid_through:structured?.valid_through||null,verification_status:verification});
-  }
+   return {id:jobId,title,company,location:locationText,employment_type:structured?.employment_type||null,description,source_url:sourceUrl.toString(),source_domain:sourceUrl.hostname,date_posted:posted,valid_through:structured?.valid_through||null,verification_status:verification};
+  }))).filter(Boolean);
   reserved=false;return j({success:true,provider:"Brave Search",jobs,results_count:jobs.length,remaining_searches:Math.max(0,10-quota.search_count),searched_at:new Date().toISOString(),note:"Hasil adalah kandidat lowongan dari indeks web. Metadata JobPosting ditampilkan bila ditemukan; status metadata tidak menjamin perusahaan masih menerima lamaran. Buka sumber asli untuk verifikasi akhir."});
  }catch(error){if(reserved){try{const day=new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10);await env.DB.prepare("UPDATE job_search_usage SET search_count=MAX(search_count-1,0) WHERE telegram_id=? AND usage_date=?").bind(uid,day).run();}catch{}}return j({success:false,error:"Terjadi kesalahan saat mencari lowongan. Coba lagi beberapa saat."},500);}
 }
