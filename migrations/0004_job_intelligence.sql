@@ -33,3 +33,10 @@ CREATE INDEX IF NOT EXISTS idx_discovered_jobs_status_date
   ON discovered_jobs(verification_status, date_posted DESC);
 CREATE INDEX IF NOT EXISTS idx_discovered_jobs_title_company
   ON discovered_jobs(title, company);
+
+CREATE TABLE IF NOT EXISTS job_search_usage (
+  telegram_id TEXT NOT NULL,
+  usage_date TEXT NOT NULL,
+  search_count INTEGER NOT NULL DEFAULT 0 CHECK (search_count >= 0),
+  PRIMARY KEY (telegram_id, usage_date)
+);
