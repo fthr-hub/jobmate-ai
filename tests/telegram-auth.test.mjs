@@ -830,3 +830,39 @@ test("renders vacancy analysis Markdown as safe structured HTML", async () => {
   assert.ok(html.includes("appendInlineMarkdown"));
   assert.ok(html.includes("node.textContent="));
 });
+
+test("Job Intelligence UI is present and discovery endpoint remains owner-authenticated", async () => {
+  assert.match(source, /u\.pathname===["']\/api\/jobs\/search["']/);
+  assert.match(source, /BRAVE_SEARCH_API_KEY/);
+  assert.match(source, /api\.search\.brave\.com\/res\/v1\/web\/search/);
+  const marker = "const APP_HTML=";
+  const start = source.indexOf(marker) + marker.length;
+  const end = source.indexOf(";\\nexport default", start);
+  const html = JSON.parse(source.slice(start, end));
+  assert.match(html, /data-tab="jobs">Job Intelligence/);
+  assert.match(html, /id="jobSearchForm"/);
+  assert.match(html, /id="jobSearchResults"/);
+  assert.match(html, /PERLU VERIFIKASI/);
+});
+
+test("Job Intelligence refuses requests without a configured search provider", async () => {
+  const env = mockEnv();
+  const response = await worker.fetch(new Request("https://jobmate.test/api/jobs/search", {
+    method: "POST",
+    headers: { Authorization: "tma " + await signedInitData(), "Content-Type": "application/json" },
+    body: JSON.stringify({ keywords: "warehouse", location: "Indonesia" })
+  }), env);
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).error, /BRAVE_SEARCH_API_KEY/);
+});
+
+test("Job Intelligence rejects unauthenticated requests before provider access", async () => {
+  const env = mockEnv();
+  env.BRAVE_SEARCH_API_KEY = "test-key";
+  const response = await worker.fetch(new Request("https://jobmate.test/api/jobs/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keywords: "warehouse", location: "Indonesia" })
+  }), env);
+  assert.equal(response.status, 401);
+});
