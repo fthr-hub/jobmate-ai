@@ -34,7 +34,7 @@ jobs:
             console.log("Checked " + scripts.length + " inline script(s).");
             const worker = fs.readFileSync("src/index.js", "utf8");
             const start = worker.indexOf("const APP_HTML=") + "const APP_HTML=".length;
-            const end = worker.indexOf(";\\nexport default", start);
+            const end = worker.indexOf(";\nexport default", start);
             if (start < "const APP_HTML=".length || end < 0) throw new Error("Embedded APP_HTML assignment missing.");
             if (JSON.parse(worker.slice(start, end)) !== html) throw new Error("public/index.html and embedded APP_HTML differ.");
             console.log("Worker HTML and public asset are synchronized.");
