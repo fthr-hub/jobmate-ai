@@ -74,16 +74,16 @@ input,textarea,select{background:#071014!important;border-color:#244149!importan
 </div></section>
 
 <section id="jobs" class="panel">
- <div class="section-head"><div><div class="eyebrow">GLOBAL VACANCY SCANNER</div><h2>Job Intelligence</h2><p class="muted">Cari peluang dari berbagai perusahaan dan industri. Setiap hasil menyertakan sumber asli dan status verifikasi data.</p></div><span class="tag">DISCOVERY NODE</span></div>
- <div class="job-console"><div class="job-console-head"><span class="job-live">SCANNER READY</span><span class="tag">PUBLIC WEB SOURCES</span></div>
- <p class="muted" style="margin:10px 0 14px">Masukkan posisi atau kata kunci. Kosongkan kata kunci untuk pencarian lowongan umum di Indonesia.</p>
+ <div class="section-head"><div><div class="eyebrow">GLOBAL VACANCY SCANNER</div><h2>Job Intelligence</h2><p class="muted">Bangun pencarian dari Google Jobs, portal kerja, dan halaman karier perusahaan. JobMate tidak perlu API berbayar.</p></div><span class="tag">DISCOVERY NODE</span></div>
+ <div class="job-console"><div class="job-console-head"><span class="job-live">SCANNER READY</span><span class="tag">FREE SEARCH SOURCES</span></div>
+ <p class="muted" style="margin:10px 0 14px">Masukkan posisi. Jika dikosongkan, JobMate memakai kata kunci yang relevan untuk warehouse, operator produksi, helper, dan QC.</p>
  <form id="jobSearchForm" class="stack">
  <div class="job-grid"><label>Posisi / keyword<input id="jobKeywords" maxlength="120" placeholder="Contoh: helper, warehouse, operator produksi"></label><label>Lokasi<input id="jobLocation" maxlength="100" value="Indonesia" placeholder="Kota, provinsi, atau Indonesia"></label></div>
  <div class="job-grid"><label>Rentang publikasi<select id="jobFreshness"><option value="pw">7 hari terakhir</option><option value="pm" selected>30 hari terakhir</option><option value="py">1 tahun terakhir</option></select></label><label>Jenis pencarian<select id="jobScope"><option value="all">Semua industri & perusahaan</option><option value="entry">Entry-level / pemula</option><option value="fresh">Fresh graduate</option></select></label></div>
- <button id="jobSearchButton" type="submit">⌕  MULAI PEMINDAIAN LOWONGAN</button><div id="jobSearchStatus" class="status" aria-live="polite"></div></form></div>
+ <button id="jobSearchButton" type="submit">⌕  CARI LOWONGAN GRATIS</button><div id="jobSearchStatus" class="status" aria-live="polite"></div></form></div>
  <div class="section-head"><div><h3>Hasil pemindaian</h3><p id="jobSearchMeta" class="muted">Belum ada pencarian dijalankan.</p></div><span id="jobResultCount" class="tag">0 RECORDS</span></div>
- <div id="jobSearchResults" class="job-results"><div class="job-empty">Menunggu perintah pencarian. JobMate akan menampilkan sumber, tanggal publikasi, dan metadata verifikasi jika tersedia.</div></div>
- <p class="job-footnote">TRANSPARENCY NOTE: hasil pencarian web bukan jaminan lowongan masih menerima pelamar. JobMate menandai metadata terstruktur secara terpisah, menyertakan URL sumber, dan tidak menyebut lowongan aktif tanpa bukti yang memadai. Selalu cek halaman perusahaan sebelum mengirim data pribadi.</p>
+ <div id="jobSearchResults" class="job-results"><div class="job-empty">Hasil pencarian akan dibuka melalui Google. Periksa tanggal, persyaratan, dan halaman resmi sebelum melamar.</div></div>
+ <p class="job-footnote">TRANSPARENCY NOTE: mode gratis membuat tautan pencarian ke indeks publik; hasil dan status lowongan ditentukan situs tujuan. JobMate tidak mengklaim lowongan aktif dan tidak mengirim data pribadi CV ke mesin pencari.</p>
 </section>
 <section id="profil" class="panel">
 <div class="section-head"><div><h2>Profil profesional</h2><p>Informasi karier yang bisa dibaca dan diperbarui setelah CV dianalisis.</p></div><span class="tag">PROFILE</span></div>
@@ -240,20 +240,19 @@ $("printEditedDocument").addEventListener("click",()=>{const value=$("documentEd
 (()=>{const splash=document.getElementById('appSplash');const finish=()=>{if(!splash||splash.classList.contains('is-leaving'))return;splash.classList.add('is-leaving');window.setTimeout(()=>splash.remove(),600)};if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){finish()}else{window.setTimeout(finish,1450)}splash?.addEventListener('click',finish,{once:true})})();
 const jobResultsRoot=$("jobSearchResults");
 function renderJobResults(jobs){
- jobResultsRoot.replaceChildren();$("jobResultCount").textContent=jobs.length+" RECORDS";
- if(!jobs.length){const empty=document.createElement("div");empty.className="job-empty";empty.textContent="Tidak ada hasil untuk kombinasi pencarian ini. Coba kata kunci atau lokasi lain.";jobResultsRoot.append(empty);return;}
+ jobResultsRoot.replaceChildren();$("jobResultCount").textContent=jobs.length+" SEARCH LINKS";
+ if(!jobs.length){const empty=document.createElement("div");empty.className="job-empty";empty.textContent="Belum ada tautan pencarian. Coba kata kunci atau lokasi lain.";jobResultsRoot.append(empty);return;}
  for(const job of jobs){
   const card=document.createElement("article");card.className="job-result";
-  const title=document.createElement("h3");title.textContent=job.title||"Judul lowongan belum tersedia";
-  const company=document.createElement("div");company.className="job-company";company.textContent=job.company||"Perusahaan belum teridentifikasi dari metadata sumber";
+  const title=document.createElement("h3");title.textContent=job.title||"Pencarian lowongan";
+  const company=document.createElement("div");company.className="job-company";company.textContent=job.company||"Sumber pencarian publik";
   const chips=document.createElement("div");chips.className="job-meta";
   const chip=(value,cls="")=>{if(!value)return;const el=document.createElement("span");el.className="job-chip "+cls;el.textContent=value;chips.append(el)};
-  chip(job.location||"Lokasi tidak disebut");chip(job.date_posted?"Dipublikasikan "+job.date_posted:"Tanggal publikasi tidak tersedia");
-  chip(job.verification_status==="structured_data"?"METADATA JOBPOSTING TERBACA":job.verification_status==="expired"?"TANGGAL KEDALUWARSA":"PERLU VERIFIKASI",job.verification_status);
-  const desc=document.createElement("p");desc.className="job-desc";desc.textContent=(job.description||"Ringkasan dari mesin pencari; buka sumber asli untuk persyaratan lengkap.").slice(0,650);
+  chip(job.location||"Indonesia");chip("PENCARIAN EKSTERNAL","needs_review");
+  const desc=document.createElement("p");desc.className="job-desc";desc.textContent=job.description||"Buka hasil pencarian, lalu cek tanggal posting dan persyaratan pada situs sumber.";
   const actions=document.createElement("div");actions.className="job-actions";
-  const link=document.createElement("a");link.href=job.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="BUKA SUMBER ASLI ↗";actions.append(link);
-  const match=document.createElement("button");match.type="button";match.className="secondary";match.textContent="COCOKKAN DENGAN CV";match.addEventListener("click",()=>prepareJobMatch(job));actions.append(match);
+  const link=document.createElement("a");link.href=job.source_url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="BUKA HASIL PENCARIAN ↗";actions.append(link);
+  const match=document.createElement("button");match.type="button";match.className="secondary";match.textContent="SIAPKAN CV UNTUK POSISI INI";match.addEventListener("click",()=>prepareJobMatch(job));actions.append(match);
   card.append(title,company,chips,desc,actions);jobResultsRoot.append(card);
  }
 }
@@ -266,15 +265,15 @@ function prepareJobMatch(job){
  status("atsStatus","Lowongan sudah dimasukkan. Tekan Periksa Skor ATS untuk analisis kecocokan.","success");
 }
 $("jobSearchForm").addEventListener("submit",async e=>{
- e.preventDefault();const button=$("jobSearchButton");button.disabled=true;button.textContent="SCANNING PUBLIC SOURCES...";
- status("jobSearchStatus","Menghubungi indeks pencarian dan memeriksa metadata sumber...");$("jobSearchMeta").textContent="Pemindaian sedang berjalan...";
+ e.preventDefault();const button=$("jobSearchButton");button.disabled=true;button.textContent="MENYIAPKAN PENCARIAN...";
+ status("jobSearchStatus","Menyusun tautan pencarian dari sumber publik...");$("jobSearchMeta").textContent="Menyiapkan sumber pencarian gratis...";
  try{
   const payload={keywords:$("jobKeywords").value.trim(),location:$("jobLocation").value.trim()||"Indonesia",freshness:$("jobFreshness").value,scope:$("jobScope").value};
   const data=await request("/api/jobs/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-  renderJobResults(data.jobs||[]);$("jobSearchMeta").textContent="Provider: "+data.provider+" · "+(data.searched_at?new Date(data.searched_at).toLocaleString("id-ID"):"baru saja")+" · Sisa pencarian hari ini: "+data.remaining_searches;
-  status("jobSearchStatus",data.note||"Pemindaian selesai. Periksa halaman sumber sebelum melamar.","success");
- }catch(error){renderJobResults([]);$("jobSearchMeta").textContent="Pencarian belum menghasilkan data.";status("jobSearchStatus",error.message,"error");}
- finally{button.disabled=false;button.textContent="⌕  MULAI PEMINDAIAN LOWONGAN";}
+  renderJobResults(data.jobs||[]);$("jobSearchMeta").textContent="Mode: "+data.provider+" · "+data.results_count+" sumber · "+(data.searched_at?new Date(data.searched_at).toLocaleString("id-ID"):"baru saja");
+  status("jobSearchStatus",data.note||"Tautan siap. Buka sumber dan verifikasi lowongan sebelum melamar.","success");
+ }catch(error){renderJobResults([]);$("jobSearchMeta").textContent="Pencarian belum berhasil.";status("jobSearchStatus",error.message,"error");}
+ finally{button.disabled=false;button.textContent="⌕  CARI LOWONGAN GRATIS";}
 });
 
 
